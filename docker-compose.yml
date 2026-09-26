@@ -1,0 +1,43 @@
+# One command demo: `docker compose up --build`, then open http://localhost:4000
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stocksense
+      POSTGRES_PASSWORD: stocksense
+      POSTGRES_DB: stocksense
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stocksense -d stocksense"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: postgres://stocksense:stocksense@db:5432/stocksense
+      # Required. Any long random string, e.g. `openssl rand -base64 48`.
+      JWT_SECRET: ${JWT_SECRET:-change-me-before-sharing-this-demo-0123456789abcdef}
+      NODE_ENV: production
+      # Plain http on localhost. Remove this line once you serve over https.
+      COOKIE_SECURE: "false"
+      # Loads two warehouses and three weeks of history on the first start.
+      SEED_DEMO: "true"
+      # Optional: real email for password reset codes.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-StockSense <no-reply@stocksense.local>}
+
+volumes:
+  pgdata:
