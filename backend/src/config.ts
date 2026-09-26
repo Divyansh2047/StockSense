@@ -28,7 +28,13 @@ const schema = z.object({
   SMTP_PORT: z.coerce.number().int().positive().default(587),
   SMTP_USER: z.string().default(''),
   SMTP_PASS: z.string().default(''),
-  SMTP_FROM: z.string().default('StockSense <no-reply@stocksense.local>'),
+  SMTP_FROM: z.string().default(''),
+  // HTTPS email APIs (work on hosts that block SMTP ports). The first one set wins.
+  RESEND_API_KEY: z.string().default(''),
+  BREVO_API_KEY: z.string().default(''),
+  MAIL_FROM: z.string().default(''),
+  // Public address of the app, used for links in emails.
+  APP_URL: z.string().default(''),
   OTP_DEV_ECHO: bool,
   COOKIE_SECURE: z.enum(['true', 'false']).optional(),
   SEED_DEMO: bool,
@@ -71,8 +77,13 @@ export const config = {
     port: env.SMTP_PORT,
     user: env.SMTP_USER,
     pass: env.SMTP_PASS,
-    from: env.SMTP_FROM,
   },
+  mail: {
+    resendKey: env.RESEND_API_KEY,
+    brevoKey: env.BREVO_API_KEY,
+    from: env.MAIL_FROM || env.SMTP_FROM || 'StockSense <no-reply@stocksense.local>',
+  },
+  appUrl: (env.APP_URL || `http://localhost:${env.NODE_ENV === 'production' ? env.PORT : 5173}`).replace(/\/+$/, ''),
   // Secure cookies, HSTS and https upgrades. On by default in production; set
   // COOKIE_SECURE=false only when serving plain http (a local docker demo).
   secureTransport: env.COOKIE_SECURE ? env.COOKIE_SECURE === 'true' : isProd,

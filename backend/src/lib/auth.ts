@@ -1,7 +1,7 @@
 import type { CookieOptions, NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config.js';
-import { one, pool } from '../db/pool.js';
+import { asCompany, asSystem, one, pool } from '../db/pool.js';
 import { forbidden, unauthorized } from './errors.js';
 
 export const SESSION_COOKIE = 'ss_session';
@@ -16,6 +16,10 @@ export interface SessionUser {
   role: Role;
   tokenVersion: number;
   createdAt: string;
+  companyId: number;
+  companyName: string;
+  sandbox: boolean;
+  emailVerified: boolean;
 }
 
 declare module 'express-serve-static-core' {
@@ -50,10 +54,14 @@ export function clearSessionCookie(res: Response): void {
   res.clearCookie(SESSION_COOKIE, cookieOptions());
 }
 
-export const USER_COLUMNS = `id, login_id AS "loginId", email, name, role, token_version AS "tokenVersion", created_at AS "createdAt"`;
+export const USER_COLUMNS = `u.id, u.login_id AS "loginId", u.email, u.name, u.role, u.token_version AS "tokenVersion",
+  u.created_at AS "createdAt", u.company_id AS "companyId", co.name AS "companyName", co.is_sandbox AS sandbox,
+  (u.email_verified_at IS NOT NULL) AS "emailVerified"`;
+export const USER_FROM = 'users u JOIN companies co ON co.id = u.company_id';
 
+/** Looks a user up across companies (the session names the user, not the company). */
 export async function loadUser(id: number): Promise<SessionUser | undefined> {
-  return one<SessionUser>(pool, `SELECT ${USER_COLUMNS} FROM users WHERE id = $1`, [id]);
+  return asSystem(() => one<SessionUser>(pool, `SELECT ${USER_COLUMNS} FROM ${USER_FROM} WHERE u.id = $1`, [id]));
 }
 
 function readToken(req: Request): string | undefined {
@@ -83,7 +91,8 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       throw unauthorized('Your session has ended. Please sign in again.');
     }
     req.user = user;
-    next();
+    // Everything after this point only sees the user's own company (row-level security).
+    asCompany(user.companyId, () => next());
   } catch (err) {
     next(err);
   }
@@ -100,5 +109,14 @@ export function currentUser(req: Request): SessionUser {
 }
 
 export function publicUser(u: SessionUser) {
-  return { id: u.id, loginId: u.loginId, email: u.email, name: u.name, role: u.role, createdAt: u.createdAt };
+  return {
+    id: u.id,
+    loginId: u.loginId,
+    email: u.email,
+    name: u.name,
+    role: u.role,
+    createdAt: u.createdAt,
+    emailVerified: u.emailVerified,
+    company: { id: u.companyId, name: u.companyName, sandbox: u.sandbox },
+  };
 }

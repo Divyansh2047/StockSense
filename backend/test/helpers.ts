@@ -1,24 +1,37 @@
 import request from 'supertest';
 import { expect } from 'vitest';
 import { createApp } from '../src/app.js';
-import { pool } from '../src/db/pool.js';
+import { adminPool } from '../src/db/pool.js';
 
 export const app = createApp();
 export const PASSWORD = 'Str0ng!pass';
 
 export async function resetDb() {
-  await pool.query(`TRUNCATE users, password_resets, warehouses, locations, categories, products, partners,
-                    stock_quants, operations, operation_lines, sequences, stock_moves RESTART IDENTITY CASCADE`);
-  await pool.query(`INSERT INTO locations (name, short_code, type) VALUES
-    ('Vendors', 'Vendors', 'vendor'), ('Customers', 'Customers', 'customer'), ('Inventory adjustment', 'Adjustment', 'inventory')`);
+  await adminPool.query(`TRUNCATE companies, users, password_resets, email_verifications, warehouses, locations, categories,
+                         products, partners, stock_quants, operations, operation_lines, sequences, stock_moves
+                         RESTART IDENTITY CASCADE`);
 }
 
 export type Agent = ReturnType<typeof request.agent>;
 
-export async function signup(loginId = 'manager1', email = `${loginId}@example.com`): Promise<Agent> {
+/** Sign up a new company and confirm the email with the echoed code. */
+export async function signup(loginId = 'manager1', email = `${loginId}@example.com`, companyName = `${loginId} Co`): Promise<Agent> {
   const agent = request.agent(app);
-  const res = await agent.post('/api/auth/signup').send({ loginId, email, password: PASSWORD, confirmPassword: PASSWORD });
+  const res = await agent.post('/api/auth/signup').send({ companyName, loginId, email, password: PASSWORD, confirmPassword: PASSWORD });
   expect(res.status, JSON.stringify(res.body)).toBe(201);
+  const verified = await agent.post('/api/auth/verify-email').send({ email, code: res.body.devCode });
+  expect(verified.status, JSON.stringify(verified.body)).toBe(200);
+  return agent;
+}
+
+/** A manager invites a teammate, who accepts through the emailed link. */
+export async function invite(manager: Agent, loginId: string, role: 'staff' | 'manager' = 'staff'): Promise<Agent> {
+  const res = await manager.post('/api/users').send({ loginId, name: loginId, email: `${loginId}@example.com`, role });
+  expect(res.status, JSON.stringify(res.body)).toBe(201);
+  const token = new URL(res.body.devLink).searchParams.get('token');
+  const agent = request.agent(app);
+  const accepted = await agent.post('/api/auth/reset-password').send({ token, password: PASSWORD, confirmPassword: PASSWORD });
+  expect(accepted.status, JSON.stringify(accepted.body)).toBe(200);
   return agent;
 }
 

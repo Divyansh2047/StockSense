@@ -7,7 +7,7 @@ import express, { Router, type RequestHandler } from 'express';
 import helmet from 'helmet';
 import { pinoHttp } from 'pino-http';
 import { config } from './config.js';
-import { pool } from './db/pool.js';
+import { adminPool } from './db/pool.js';
 import { requireAuth } from './lib/auth.js';
 import { errorHandler, forbidden, notFoundHandler } from './lib/errors.js';
 import { connectedClients, subscribe } from './lib/events.js';
@@ -73,7 +73,7 @@ function apiRouter(): Router {
 
   api.get('/health', async (_req, res) => {
     const started = Date.now();
-    await pool.query('SELECT 1');
+    await adminPool.query('SELECT 1');
     res.json({ ok: true, db: 'up', dbLatencyMs: Date.now() - started, liveClients: connectedClients() });
   });
 

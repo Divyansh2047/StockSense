@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { pool } from '../src/db/pool.js';
-import { onHand, resetDb, signup, world, type Agent } from './helpers.js';
+import { invite, onHand, resetDb, world, type Agent } from './helpers.js';
 
 beforeEach(resetDb);
 afterAll(() => pool.end());
@@ -261,7 +261,7 @@ describe('references, warehouses and the dashboard', () => {
 
   it('lets staff run operations but not settings', async () => {
     const w = await world();
-    const staff = await signup('picker01');
+    const staff = await invite(w.agent, 'picker01');
     const r = await op(staff, { type: 'receipt', destLocationId: w.stockId, lines: [{ productId: w.steelId, quantity: 4 }] });
     expect((await act(staff, r.id, 'validate')).body.status).toBe('done');
     expect((await staff.delete(`/api/locations/${w.productionId}`)).status).toBe(403);
