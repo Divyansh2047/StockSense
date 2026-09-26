@@ -37,7 +37,7 @@ export function signSession(user: { id: number; tokenVersion: number }): string 
 
 const cookieOptions = (): CookieOptions => ({
   httpOnly: true,
-  secure: config.isProd,
+  secure: config.secureTransport,
   sameSite: 'lax',
   path: '/',
 });

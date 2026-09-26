@@ -15,10 +15,13 @@
     "test": "npm test -w backend",
     "typecheck": "npm run typecheck -w backend && npm run typecheck -w frontend",
     "db:migrate": "npm run db:migrate -w backend",
-    "db:seed": "npm run db:seed -w backend"
+    "db:seed": "npm run db:seed -w backend",
+    "e2e": "node e2e/smoke.mjs",
+    "db:reset": "npm run db:reset -w backend"
   },
   "devDependencies": {
-    "concurrently": "^9.2.4"
+    "concurrently": "^9.2.4",
+    "playwright": "^1.63.0"
   },
   "engines": {
     "node": ">=20.11"

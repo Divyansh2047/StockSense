@@ -30,6 +30,8 @@ const schema = z.object({
   SMTP_PASS: z.string().default(''),
   SMTP_FROM: z.string().default('StockSense <no-reply@stocksense.local>'),
   OTP_DEV_ECHO: bool,
+  COOKIE_SECURE: z.enum(['true', 'false']).optional(),
+  SEED_DEMO: bool,
 });
 
 const parsed = schema.safeParse(process.env);
@@ -71,6 +73,10 @@ export const config = {
     pass: env.SMTP_PASS,
     from: env.SMTP_FROM,
   },
+  // Secure cookies, HSTS and https upgrades. On by default in production; set
+  // COOKIE_SECURE=false only when serving plain http (a local docker demo).
+  secureTransport: env.COOKIE_SECURE ? env.COOKIE_SECURE === 'true' : isProd,
+  seedDemo: env.SEED_DEMO,
   // Never echo OTPs in production, whatever the flag says.
   otpDevEcho: env.OTP_DEV_ECHO && !isProd,
 } as const;

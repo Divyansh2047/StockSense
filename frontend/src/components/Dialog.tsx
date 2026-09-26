@@ -1,5 +1,5 @@
 import { X } from '@phosphor-icons/react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -61,7 +61,7 @@ export function Dialog({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           className="overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -71,7 +71,7 @@ export function Dialog({
             if (e.target === e.currentTarget) onClose();
           }}
         >
-          <motion.div
+          <m.div
             ref={box}
             className={`dialog ${wide ? 'dialog--wide' : ''}`}
             role="dialog"
@@ -94,8 +94,8 @@ export function Dialog({
             </div>
             <div className="dialog__body">{children}</div>
             {footer && <div className="dialog__foot">{footer}</div>}
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>,
     document.body,

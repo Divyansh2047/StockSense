@@ -1,5 +1,5 @@
 import { CaretDown, CaretRight, Check, MagnifyingGlass, PencilSimple, Stack, X } from '@phosphor-icons/react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { Fragment, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { Empty, ErrorBox, PageHeader, SkeletonRows, StockPill } from '../components/ui';
@@ -175,7 +175,7 @@ function StockRowView({ r, open, toggle, locationFilter }: { r: StockRow; open: 
       </tr>
       <AnimatePresence initial={false}>
         {open && (
-          <motion.tr
+          <m.tr
             className="stock-sub"
             initial={reduce ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -200,7 +200,7 @@ function StockRowView({ r, open, toggle, locationFilter }: { r: StockRow; open: 
                 )}
               </div>
             </td>
-          </motion.tr>
+          </m.tr>
         )}
       </AnimatePresence>
     </Fragment>

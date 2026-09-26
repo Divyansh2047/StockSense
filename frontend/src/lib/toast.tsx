@@ -1,5 +1,5 @@
 import { CheckCircle, Info, WarningCircle, X } from '@phosphor-icons/react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 
 type Tone = 'success' | 'error' | 'info';
@@ -45,7 +45,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toasts" role="status" aria-live="polite">
         <AnimatePresence initial={false}>
           {items.map((t) => (
-            <motion.div
+            <m.div
               key={t.id}
               className="toast"
               data-tone={t.tone}
@@ -65,7 +65,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss">
                 <X size={16} />
               </button>
-            </motion.div>
+            </m.div>
           ))}
         </AnimatePresence>
       </div>

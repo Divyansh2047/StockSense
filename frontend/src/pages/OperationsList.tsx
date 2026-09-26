@@ -1,5 +1,5 @@
 import { ArrowDownLeft, ArrowUpRight, ArrowsLeftRight, CalendarBlank, Kanban, ListBullets, MagnifyingGlass, Plus, Scales, Stack, User } from '@phosphor-icons/react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { useMemo, useState, type DragEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Empty, ErrorBox, PageHeader, SkeletonRows, StatusPill } from '../components/ui';
@@ -179,7 +179,7 @@ function ListTable({ type, items }: { type: OpType; items: OperationSummary[] })
             {items.map((o, i) => {
               const to = `${TYPE_PATH[o.type]}/${o.id}`;
               return (
-                <motion.tr
+                <m.tr
                   key={o.id}
                   className="is-link"
                   data-dir={DIR[type]}
@@ -210,7 +210,7 @@ function ListTable({ type, items }: { type: OpType; items: OperationSummary[] })
                   <td>
                     <StatusPill status={o.status} late={o.late} />
                   </td>
-                </motion.tr>
+                </m.tr>
               );
             })}
           </AnimatePresence>
@@ -301,7 +301,7 @@ function KanbanBoard({ type, items, loading }: { type: OpType; items: OperationS
             <div className="kanban__cards">
               <AnimatePresence initial={false}>
                 {cards.map((o) => (
-                  <motion.div key={o.id} layout={!reduce} initial={reduce ? false : { opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
+                  <m.div key={o.id} layout={!reduce} initial={reduce ? false : { opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
                     <Link
                       to={`${TYPE_PATH[o.type]}/${o.id}`}
                       className={`kcard ${drag?.id === o.id ? 'is-dragging' : ''}`}
@@ -336,7 +336,7 @@ function KanbanBoard({ type, items, loading }: { type: OpType; items: OperationS
                         )}
                       </div>
                     </Link>
-                  </motion.div>
+                  </m.div>
                 ))}
               </AnimatePresence>
               {!cards.length && <div className="kanban__empty">{drag && allowed && drag.status !== col ? 'Drop here' : 'Empty'}</div>}

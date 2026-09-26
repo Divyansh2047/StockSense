@@ -22,7 +22,7 @@ import {
   Warehouse,
   X,
 } from '@phosphor-icons/react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { post } from '../lib/api';
@@ -244,8 +244,8 @@ export function AppShell() {
       <AnimatePresence>
         {drawer && (
           <>
-            <motion.div className="drawer-scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDrawer(false)} />
-            <motion.aside
+            <m.div className="drawer-scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDrawer(false)} />
+            <m.aside
               className="drawer"
               aria-label="Navigation"
               initial={reduce ? { opacity: 0 } : { x: '-100%' }}
@@ -263,7 +263,7 @@ export function AppShell() {
               <div className="sidebar__foot">
                 <ProfileMenu placement="above" />
               </div>
-            </motion.aside>
+            </m.aside>
           </>
         )}
       </AnimatePresence>
@@ -291,14 +291,14 @@ export function AppShell() {
         </header>
 
         <main id="content" className="content" tabIndex={-1}>
-          <motion.div
+          <m.div
             key={location.pathname}
             initial={reduce ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           >
             <Outlet />
-          </motion.div>
+          </m.div>
         </main>
       </div>
 

@@ -11,7 +11,7 @@ import {
   Table,
   Warning,
 } from '@phosphor-icons/react';
-import { motion, useReducedMotion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { FlowChart, FlowTable } from '../components/FlowChart';
@@ -283,21 +283,21 @@ export default function Dashboard() {
       {error && <ErrorBox error={error} retry={() => refetch()} />}
 
       <div className={`dash__grid ${isFetching && !isLoading ? 'is-refreshing' : ''}`}>
-        <motion.div className="dash__docks" {...enter(0)}>
+        <m.div className="dash__docks" {...enter(0)}>
           <DockCard type="receipt" stats={data?.cards.receipt} big />
           <DockCard type="delivery" stats={data?.cards.delivery} big />
           <DockCard type="internal" stats={data?.cards.internal} />
-        </motion.div>
+        </m.div>
 
-        <motion.div className="kpis" {...enter(1)} aria-busy={isLoading}>
+        <m.div className="kpis" {...enter(1)} aria-busy={isLoading}>
           <Kpi label="Products in stock" value={k ? int(k.productsInStock) : '0'} sub={k ? `of ${k.productCount} in the catalog` : ''} to="/stock?stock=in" />
           <Kpi label="Low stock" value={k ? int(k.lowStock) : '0'} sub="At or under reorder point" tone={k?.lowStock ? 'warn' : undefined} to="/stock?stock=low" />
           <Kpi label="Out of stock" value={k ? int(k.outOfStock) : '0'} sub="Nothing left on hand" tone={k?.outOfStock ? 'alert' : undefined} to="/stock?stock=out" />
           <Kpi label="Stock value" value={k ? money(k.stockValue) : '0'} sub="On hand at unit cost" />
           <Kpi label="Reserved" value={k ? int(k.unitsReserved) : '0'} sub="Held for ready orders" />
-        </motion.div>
+        </m.div>
 
-        <motion.section className="panel dash__flow" {...enter(2)} aria-labelledby="flow-title">
+        <m.section className="panel dash__flow" {...enter(2)} aria-labelledby="flow-title">
           <div className="panel__head">
             <div>
               <h2 id="flow-title">Stock value moved</h2>
@@ -325,9 +325,9 @@ export default function Dashboard() {
           <div className="panel__body">
             {view === 'chart' ? <FlowChart data={data?.movement ?? []} dimmed={isFetching && !isLoading} /> : <FlowTable data={data?.movement ?? []} />}
           </div>
-        </motion.section>
+        </m.section>
 
-        <motion.section className="panel dash__low" {...enter(3)} aria-labelledby="low-title">
+        <m.section className="panel dash__low" {...enter(3)} aria-labelledby="low-title">
           <div className="panel__head">
             <div>
               <h2 id="low-title">Needs reordering</h2>
@@ -375,9 +375,9 @@ export default function Dashboard() {
               })}
             </ul>
           )}
-        </motion.section>
+        </m.section>
 
-        <motion.section className="panel dash__ops" {...enter(4)} aria-labelledby="ops-title">
+        <m.section className="panel dash__ops" {...enter(4)} aria-labelledby="ops-title">
           <div className="panel__head">
             <div>
               <h2 id="ops-title">{type ? `${TYPE_LABEL[type as OpType]}s` : 'Open documents'}</h2>
@@ -408,9 +408,9 @@ export default function Dashboard() {
               </table>
             </div>
           )}
-        </motion.section>
+        </m.section>
 
-        <motion.section className="panel dash__feed" {...enter(5)} aria-labelledby="feed-title">
+        <m.section className="panel dash__feed" {...enter(5)} aria-labelledby="feed-title">
           <div className="panel__head">
             <div>
               <h2 id="feed-title">Latest moves</h2>
@@ -442,7 +442,7 @@ export default function Dashboard() {
               </li>
             ))}
           </ol>
-        </motion.section>
+        </m.section>
       </div>
 
       <ReplenishDialog key={replenish?.id ?? 0} item={replenish} onClose={() => setReplenish(null)} />

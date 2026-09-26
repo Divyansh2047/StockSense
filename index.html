@@ -1984,11 +1984,9 @@
       }
 
       /* ---------------- camera rig ---------------- */
-      const qv = (k, def) => (Q.get(k) ? Q.get(k).split(',').map(Number) : def);
-      const hc = qv('cam', [20, 15, 24, 0.5, 0.2, 0]);
-      const HERO = { pos: V(hc[0], hc[1], hc[2]), tgt: V(hc[3], hc[4], hc[5]) };
+      const HERO = { pos: V(20, 15, 24), tgt: V(0.5, 0.2, 0) };
       const HERO_M = { pos: V(10, 16, 21), tgt: V(-0.5, 0.4, 0.2) };
-      const heroShift = Number(Q.get('off') || -0.1);
+      const heroShift = -0.1;
       const FLOW = [
         { pos: V(-13.5, 7.6, 12.8), tgt: V(-8.4, 0.9, 1.0) },
         { pos: V(-9.2, 8.4, 13.4), tgt: V(-4.2, 1.1, 0.6) },
@@ -2072,7 +2070,8 @@
       }, { passive: true });
 
       const HERO_CYCLE = 13.5;
-      const frozenT = Q.has('t') ? Number(Q.get('t')) : null;
+      // ?t=1.5 freezes the hero story at a moment (handy for screenshots)
+      const frozenT = Q.has('t') ? clamp(Number(Q.get('t')) || 0, 0, 4) : null;
       let heroClock = 0, tShown = reduceMQ.matches ? 1 : 0, last = performance.now(), raf = 0, prevCycle = 0;
       let fadeShown = 1, clockTime = 0;
       const exposed = { hero: true, flow: false };

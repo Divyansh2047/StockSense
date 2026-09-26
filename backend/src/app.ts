@@ -113,7 +113,8 @@ export function createApp() {
   app.use(
     pinoHttp({
       logger,
-      autoLogging: { ignore: (req) => req.url === '/api/health' || req.url === '/api/events' },
+      // log API traffic only; static assets would drown everything else
+      autoLogging: { ignore: (req) => !req.url?.startsWith('/api/') || req.url === '/api/health' || req.url === '/api/events' },
       customLogLevel: (_req, res, err) => (err || res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info'),
     }),
   );
@@ -133,10 +134,11 @@ export function createApp() {
           frameAncestors: ["'none'"],
           baseUri: ["'self'"],
           formAction: ["'self'"],
-          upgradeInsecureRequests: config.isProd ? [] : null,
+          upgradeInsecureRequests: config.secureTransport ? [] : null,
         },
       },
       crossOriginEmbedderPolicy: false,
+      strictTransportSecurity: config.secureTransport ? { maxAge: 31536000, includeSubDomains: true } : false,
     }),
   );
   app.use(cookieParser());

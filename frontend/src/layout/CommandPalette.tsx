@@ -1,6 +1,6 @@
 import { ArrowRight, FileText, MagnifyingGlass, Package, Plus } from '@phosphor-icons/react';
 import { useQuery } from '@tanstack/react-query';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, m, useReducedMotion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router';
@@ -110,7 +110,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   return createPortal(
     <AnimatePresence>
       {open && (
-        <motion.div
+        <m.div
           className="overlay palette-overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -118,7 +118,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           transition={{ duration: 0.15 }}
           onPointerDown={(e) => e.target === e.currentTarget && onClose()}
         >
-          <motion.div
+          <m.div
             className="palette"
             role="dialog"
             aria-modal="true"
@@ -183,8 +183,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               })}
               {!items.length && <li className="combo__empty">No matches for “{text}”.</li>}
             </ul>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>,
     document.body,
