@@ -6,6 +6,8 @@
 
 It is built on the inventory model Odoo uses (internal and virtual locations, stock quants, pickings, an append-only move ledger) and follows the StockSense problem statement and mockup screen by screen.
 
+Website: https://stocksense.scriptjacker.in/
+
 ---
 
 ## What is inside
