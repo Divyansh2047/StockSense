@@ -1,2 +1,2 @@
-# oodo
-OODO Hackathon
+# StockSense
+StockSense - OODO Hackathon
