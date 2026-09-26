@@ -1,4 +1,4 @@
-# StockSense
+# ![StockSense](https://stocksense.scriptjacker.in)
 
 **Every unit has an address.** StockSense is a modular inventory management system that replaces registers and spreadsheets with one live ledger: receipts, deliveries, internal transfers and stock counts across every warehouse, rack and bay.
 
