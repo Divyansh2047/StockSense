@@ -1,0 +1,2182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>StockSense | Every unit has an address</title>
+  <meta name="description" content="StockSense tracks receipts, deliveries, internal transfers and stock counts across every warehouse, and writes each move to one ledger." />
+  <meta name="theme-color" content="#0c0e0f" />
+  <meta name="color-scheme" content="light dark" />
+  <!-- Where the "Open the app" buttons point. Served by the StockSense API in production. -->
+  <meta name="stocksense:app" content="/app/" />
+  <meta property="og:title" content="StockSense | Every unit has an address" />
+  <meta property="og:description" content="Receipts, deliveries, transfers and counts across every warehouse, written to one stock ledger." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l9 5-9 5-9-5z' fill='%23ffb224'/%3E%3Cpath d='M3 7l9 5v10l-9-5z' fill='%23262b2f'/%3E%3Cpath d='M21 7l-9 5v10l9-5z' fill='%23565d64'/%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Big+Shoulders+Display:wght@600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/fill/style.css" />
+
+  <script>
+    (function () {
+      var d = document.documentElement;
+      d.classList.add('js');
+      try {
+        var t = localStorage.getItem('ss-theme');
+        if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <style>
+    /* ------------------------------------------------------------------
+       Tokens. Light is the base, dark overrides. One accent: safety amber.
+       Green / red are semantic only (stock in / stock out).
+       ------------------------------------------------------------------ */
+    :root {
+      --bg: #eef0f1;
+      --bg-2: #e5e8ea;
+      --surface: #f8f9f9;
+      --surface-2: #ffffff;
+      --ink: #101315;
+      --ink-2: #353b41;
+      --muted: #5b636a;
+      --line: #d3d8dc;
+      --line-2: #b8bfc5;
+      --accent: #ffb224;
+      --accent-ink: #875800;
+      --on-accent: #17130a;
+      --in: #087a6c;
+      --out: #c23a25;
+      --in-bg: rgb(10 138 122 / 0.12);
+      --out-bg: rgb(216 69 47 / 0.1);
+      --shadow-lg: 0 1px 0 rgb(16 19 21 / 0.04), 0 30px 60px -30px rgb(28 36 44 / 0.35);
+      --shadow-md: 0 1px 0 rgb(16 19 21 / 0.04), 0 14px 30px -18px rgb(28 36 44 / 0.35);
+      --radius: 4px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --font-display: "Big Shoulders Display", "Archivo Narrow", "Arial Narrow", sans-serif;
+      --font-body: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+      --nav-h: 68px;
+      /* z-index scale */
+      --z-scene: 0;
+      --z-labels: 1;
+      --z-content: 2;
+      --z-nav: 10;
+      color-scheme: light;
+    }
+    :root[data-theme="dark"] {
+      --bg: #0c0e0f;
+      --bg-2: #111416;
+      --surface: #15181a;
+      --surface-2: #1b1f22;
+      --ink: #eceeef;
+      --ink-2: #c5cacd;
+      --muted: #939aa1;
+      --line: #252a2e;
+      --line-2: #353b40;
+      --accent: #ffb224;
+      --accent-ink: #ffc65c;
+      --on-accent: #15120a;
+      --in: #16a88a;
+      --out: #f0584a;
+      --in-bg: rgb(22 168 138 / 0.14);
+      --out-bg: rgb(240 88 74 / 0.13);
+      --shadow-lg: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 40px 80px -40px rgb(0 0 0 / 0.8);
+      --shadow-md: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 18px 40px -22px rgb(0 0 0 / 0.75);
+      color-scheme: dark;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0c0e0f;
+        --bg-2: #111416;
+        --surface: #15181a;
+        --surface-2: #1b1f22;
+        --ink: #eceeef;
+        --ink-2: #c5cacd;
+        --muted: #939aa1;
+        --line: #252a2e;
+        --line-2: #353b40;
+        --accent: #ffb224;
+        --accent-ink: #ffc65c;
+        --on-accent: #15120a;
+        --in: #16a88a;
+        --out: #f0584a;
+        --in-bg: rgb(22 168 138 / 0.14);
+        --out-bg: rgb(240 88 74 / 0.13);
+        --shadow-lg: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 40px 80px -40px rgb(0 0 0 / 0.8);
+        --shadow-md: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 18px 40px -22px rgb(0 0 0 / 0.75);
+        color-scheme: dark;
+      }
+    }
+
+    /* ------------------------------------------------------------------ base */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; scroll-padding-top: calc(var(--nav-h) + 16px); }
+    @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 400 16px/1.55 var(--font-body);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: clip;
+      transition: background-color 0.4s var(--ease), color 0.4s var(--ease);
+    }
+    img, svg, canvas { display: block; }
+    a { color: inherit; }
+    button { font: inherit; color: inherit; }
+    h1, h2, h3, p { margin: 0; }
+    ::selection { background: var(--accent); color: var(--on-accent); }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+    .wrap { width: 100%; max-width: 1320px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px); }
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .skip {
+      position: fixed; left: 16px; top: -60px; z-index: 100;
+      background: var(--accent); color: var(--on-accent);
+      padding: 10px 14px; border-radius: var(--radius); font-weight: 600; text-decoration: none;
+    }
+    .skip:focus { top: 12px; }
+    .mono { font-family: var(--font-mono); font-feature-settings: "zero" 1; }
+    .num { font-variant-numeric: tabular-nums; }
+
+    /* ------------------------------------------------------------------ 3D stage */
+    #scene {
+      position: fixed; inset: 0; width: 100%; height: 100%;
+      z-index: var(--z-scene);
+      transition: opacity 0.6s ease;
+    }
+    #labels { position: fixed; inset: 0; z-index: var(--z-labels); pointer-events: none; overflow: hidden; transition: opacity 0.6s ease; }
+    .ztag {
+      position: absolute; left: 0; top: 0;
+      display: grid; gap: 2px; justify-items: center;
+      will-change: transform, opacity;
+      transition: opacity 0.35s ease;
+    }
+    .ztag b {
+      font: 600 11.5px/1 var(--font-mono); letter-spacing: 0.02em;
+      padding: 5px 7px; border-radius: 3px;
+      background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+      border: 1px solid var(--line-2); color: var(--ink);
+      white-space: nowrap;
+    }
+    .ztag span { font: 500 11px/1.2 var(--font-body); color: var(--muted); white-space: nowrap; }
+    .ztag::after { content: ""; width: 1px; height: 18px; background: var(--line-2); }
+    .optag {
+      position: absolute; left: 0; top: 0;
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px 8px 8px;
+      background: var(--surface-2); color: var(--ink);
+      border: 1px solid var(--line-2); border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      will-change: transform, opacity;
+      transition: opacity 0.35s ease;
+      white-space: nowrap;
+    }
+    .optag i { font-size: 18px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 3px; background: var(--bg-2); }
+    .optag .ref { font: 600 12px/1 var(--font-mono); display: block; }
+    .optag .what { font: 500 12px/1.3 var(--font-body); color: var(--muted); display: block; margin-top: 3px; }
+    .optag .qty { font: 700 22px/1 var(--font-display); letter-spacing: 0.02em; margin-left: 4px; }
+    .optag[data-kind="in"] .qty, .optag[data-kind="in"] i { color: var(--in); }
+    .optag[data-kind="out"] .qty, .optag[data-kind="out"] i { color: var(--out); }
+    .optag[data-kind="int"] .qty, .optag[data-kind="int"] i { color: var(--accent-ink); }
+
+    main { position: relative; z-index: var(--z-content); }
+    .solid { position: relative; background: var(--bg); }
+
+    /* ------------------------------------------------------------------ nav */
+    .nav {
+      position: fixed; inset: 0 0 auto; z-index: var(--z-nav);
+      height: var(--nav-h);
+      transition: background-color 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease;
+      border-bottom: 1px solid transparent;
+    }
+    .nav.is-stuck {
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: blur(14px) saturate(1.3);
+      -webkit-backdrop-filter: blur(14px) saturate(1.3);
+      border-bottom-color: var(--line);
+    }
+    .nav__row { height: 100%; display: flex; align-items: center; gap: 28px; }
+    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; margin-right: auto; }
+    .brand svg { width: 28px; height: 28px; color: var(--ink); }
+    .brand span { font: 800 23px/1 var(--font-display); letter-spacing: 0.05em; text-transform: uppercase; }
+    .nav__links { display: flex; gap: 26px; }
+    .nav__links a {
+      position: relative; text-decoration: none; font-weight: 500; font-size: 14.5px; color: var(--ink-2);
+      padding: 6px 0;
+    }
+    .nav__links a::after {
+      content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--accent);
+      transform: scaleX(0); transform-origin: left; transition: transform 0.35s var(--ease);
+    }
+    .nav__links a:hover { color: var(--ink); }
+    .nav__links a:hover::after { transform: scaleX(1); }
+    .nav__actions { display: flex; align-items: center; gap: 10px; }
+    .icon-btn {
+      width: 40px; height: 40px; display: grid; place-items: center;
+      background: transparent; border: 1px solid var(--line-2); border-radius: var(--radius);
+      cursor: pointer; transition: background-color 0.2s, transform 0.2s var(--ease);
+    }
+    .icon-btn:hover { background: var(--bg-2); }
+    .icon-btn:active { transform: translateY(1px); }
+    .icon-btn i { font-size: 19px; }
+    .nav__menu { display: none; }
+    .mnav {
+      position: absolute; top: var(--nav-h); left: 0; right: 0;
+      background: var(--bg); border-bottom: 1px solid var(--line);
+      padding: 8px clamp(16px, 4vw, 40px) 20px;
+    }
+    .mnav a {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 0; border-bottom: 1px solid var(--line);
+      font: 700 26px/1 var(--font-display); text-transform: uppercase; letter-spacing: 0.03em; text-decoration: none;
+    }
+    .mnav a:last-child { border-bottom: 0; }
+
+    /* ------------------------------------------------------------------ buttons */
+    .btn {
+      --h: 50px;
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      height: var(--h); padding: 0 22px;
+      border-radius: var(--radius); border: 1px solid transparent;
+      font: 600 15px/1 var(--font-body); letter-spacing: 0.005em;
+      text-decoration: none; white-space: nowrap; cursor: pointer;
+      transition: transform 0.25s var(--ease), background-color 0.2s, border-color 0.2s, box-shadow 0.25s var(--ease);
+    }
+    .btn i { font-size: 18px; transition: transform 0.25s var(--ease); }
+    .btn:hover i.ph-arrow-right, .btn:hover i.ph-arrow-up-right { transform: translateX(3px); }
+    .btn:active { transform: translateY(1px) scale(0.99); }
+    .btn--primary {
+      background: var(--accent); color: var(--on-accent);
+      box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.16);
+    }
+    .btn--primary:hover {
+      transform: translateY(-1px);
+      box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.16), 0 14px 26px -14px rgb(255 178 36 / 0.7);
+    }
+    .btn--ghost {
+      background: color-mix(in srgb, var(--bg) 55%, transparent);
+      color: var(--ink); border-color: var(--line-2);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    }
+    .btn--ghost:hover { border-color: var(--ink-2); transform: translateY(-1px); }
+    .btn--sm { --h: 40px; padding: 0 16px; font-size: 14px; }
+    .btn--xs { --h: 32px; padding: 0 12px; font-size: 13px; gap: 6px; }
+    .btn--xs i { font-size: 15px; }
+
+    /* ------------------------------------------------------------------ hero */
+    .hero {
+      position: relative;
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; align-items: center;
+      padding: calc(var(--nav-h) + 24px) 0 72px;
+    }
+    .hero::before {
+      /* legibility scrim between copy and the 3D scene */
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(90deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 78%, transparent) 30%, transparent 58%);
+    }
+    html:not(.webgl-on) .hero::after {
+      /* static fallback when WebGL or the CDN is unavailable */
+      content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: radial-gradient(ellipse at 75% 55%, #000 0%, transparent 65%);
+      -webkit-mask-image: radial-gradient(ellipse at 75% 55%, #000 0%, transparent 65%);
+    }
+    .hero__copy { position: relative; max-width: 640px; }
+    .hero__title {
+      font: 800 clamp(3.4rem, 1.2rem + 6.4vw, 7.4rem)/0.9 var(--font-display);
+      text-transform: uppercase; letter-spacing: 0.004em;
+    }
+    .hero__title .line { display: block; overflow: hidden; padding: 0.02em 0 0.05em; margin-bottom: -0.05em; }
+    .hero__title .line > span { display: inline-block; }
+    .hero__title em {
+      position: relative; z-index: 0; font-style: normal; white-space: nowrap;
+      padding: 0 0.07em; color: var(--on-accent);
+    }
+    .hero__title em::before {
+      content: ""; position: absolute; z-index: -1;
+      inset: 0.1em -0.03em 0.04em;
+      background: var(--accent); border-radius: 2px;
+      transform: skewX(-7deg);
+    }
+    .hero__sub {
+      margin-top: 26px; max-width: 30em;
+      font-size: clamp(1.05rem, 0.98rem + 0.3vw, 1.22rem); line-height: 1.55; color: var(--ink-2);
+    }
+    .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .js .hero__title .line > span { transform: translateY(108%); animation: rise 1s var(--ease) forwards; }
+      .js .hero__title .line:nth-child(2) > span { animation-delay: 0.1s; }
+      .js .hero__title .line:nth-child(3) > span { animation-delay: 0.2s; }
+      .js .hero__title em { animation: inkswap 0.01s 0.95s forwards; color: var(--ink); }
+      .js .hero__title em::before { transform: skewX(-7deg) scaleX(0); transform-origin: left; animation: marker 0.7s 0.7s var(--ease) forwards; }
+      .js .hero__sub, .js .hero .cta-row { opacity: 0; transform: translateY(14px); animation: fadeup 0.9s var(--ease) forwards; }
+      .js .hero__sub { animation-delay: 0.35s; }
+      .js .hero .cta-row { animation-delay: 0.5s; }
+    }
+    @keyframes rise { to { transform: translateY(0); } }
+    @keyframes marker { to { transform: skewX(-7deg) scaleX(1); } }
+    @keyframes inkswap { to { color: var(--on-accent); } }
+    @keyframes fadeup { to { opacity: 1; transform: none; } }
+
+    /* ------------------------------------------------------------------ ledger tape (the one marquee) */
+    .tape {
+      position: relative; z-index: var(--z-content);
+      background: var(--accent); color: var(--on-accent);
+      overflow: hidden; user-select: none;
+    }
+    .tape__track { display: flex; width: max-content; }
+    @media (prefers-reduced-motion: no-preference) {
+      .tape__track { animation: tape 60s linear infinite; }
+      .tape:hover .tape__track { animation-play-state: paused; }
+    }
+    @keyframes tape { to { transform: translateX(-50%); } }
+    .tape__item {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 13px 26px; white-space: nowrap;
+      font: 500 13px/1 var(--font-mono);
+      border-right: 1px solid rgb(0 0 0 / 0.16);
+    }
+    .tape__item b { font-weight: 600; }
+    .tape__item em { font-style: normal; font-weight: 600; }
+
+    /* ------------------------------------------------------------------ flow (scroll-scrubbed 3D story) */
+    .flow { position: relative; height: 480vh; }
+    .flow__sticky {
+      position: sticky; top: 0;
+      height: 100vh; height: 100dvh;
+      display: flex; align-items: center;
+      padding-top: var(--nav-h);
+    }
+    .flow__panel {
+      width: min(452px, 100%);
+      background: color-mix(in srgb, var(--surface) 86%, transparent);
+      backdrop-filter: blur(16px) saturate(1.25); -webkit-backdrop-filter: blur(16px) saturate(1.25);
+      border: 1px solid var(--line); border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      padding: 28px 28px 24px;
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      .flow__panel, .btn--ghost, .nav.is-stuck { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+    }
+    .flow__title { font: 800 clamp(2.1rem, 1.5rem + 1.6vw, 2.9rem)/0.95 var(--font-display); text-transform: uppercase; letter-spacing: 0.01em; }
+    .rail { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .rail li { font: 600 12px/1 var(--font-body); color: var(--muted); transition: color 0.3s; }
+    .rail li::after {
+      content: ""; display: block; height: 3px; margin-top: 8px; border-radius: 2px;
+      background: linear-gradient(90deg, var(--accent) 0 var(--fill, 0%), var(--line) var(--fill, 0%));
+    }
+    .rail li.is-on { color: var(--ink); }
+    .steps { display: grid; margin-top: 20px; }
+    .step { grid-area: 1 / 1; transition: opacity 0.45s var(--ease), transform 0.45s var(--ease); }
+    .step:not(.is-on) { opacity: 0; transform: translateY(10px); pointer-events: none; }
+    .step h3 { font: 700 20px/1.2 var(--font-body); letter-spacing: -0.01em; }
+    .step p { margin-top: 8px; color: var(--ink-2); font-size: 15px; }
+    .ledger { width: 100%; margin-top: 22px; border-collapse: collapse; font: 500 12px/1.2 var(--font-mono); }
+    .ledger th { text-align: left; font: 600 11px/1 var(--font-body); color: var(--muted); padding: 0 0 8px; border-bottom: 1px solid var(--line); }
+    .ledger td { padding: 8px 0; border-bottom: 1px dashed var(--line); transition: opacity 0.4s, background-color 0.6s; white-space: nowrap; }
+    .ledger td:not(:first-child), .ledger th:not(:first-child) { padding-left: 10px; }
+    .ledger th:nth-child(n+3), .ledger td:nth-child(n+3) { text-align: right; }
+    .ledger tr:not(.is-on) td { opacity: 0.22; }
+    .ledger tr.is-flash td { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+    .ledger .q-in { color: var(--in); }
+    .ledger .q-out { color: var(--out); }
+    .ledger .q-int { color: var(--accent-ink); }
+    .ledger .mv { color: var(--muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+    .flow__total { display: flex; align-items: baseline; justify-content: space-between; margin-top: 18px; }
+    .flow__total > span { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .flow__total strong { font: 800 44px/0.9 var(--font-display); letter-spacing: 0.01em; }
+    .flow__total small { font: 600 18px/1 var(--font-display); color: var(--muted); margin-left: 4px; }
+
+    /* ------------------------------------------------------------------ shared section type */
+    .section { padding: clamp(88px, 11vw, 150px) 0; }
+    .h2 {
+      font: 800 clamp(2.5rem, 1.6rem + 3.4vw, 4.6rem)/0.92 var(--font-display);
+      text-transform: uppercase; letter-spacing: 0.005em; max-width: 16ch;
+    }
+    .lede { margin-top: 18px; max-width: 56ch; font-size: 1.075rem; color: var(--ink-2); }
+    .kicker { display: inline-block; margin-bottom: 18px; font: 600 12px/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); }
+
+    /* reveal on scroll */
+    @media (prefers-reduced-motion: no-preference) {
+      .js .rv { opacity: 0; transform: translateY(26px); transition: opacity 0.9s var(--ease), transform 0.9s var(--ease); transition-delay: calc(var(--d, 0) * 80ms); }
+      .js .rv.is-in { opacity: 1; transform: none; }
+    }
+
+    /* ------------------------------------------------------------------ operations deck */
+    .ops { border-top: 1px solid var(--line); }
+    .ops__head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 48px; }
+    .refmap { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 6px 14px; }
+    .refmap__part { display: grid; gap: 10px; }
+    .refmap__part code {
+      font: 600 clamp(2rem, 1.3rem + 2.4vw, 3.4rem)/1 var(--font-mono); letter-spacing: -0.02em;
+      padding-bottom: 10px; border-bottom: 3px solid var(--line-2);
+      transition: color 0.3s, border-color 0.3s;
+    }
+    .refmap__part span { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .refmap__part.is-op code { color: var(--accent-ink); border-color: var(--accent); }
+    .refmap__slash { font: 400 clamp(2rem, 1.3rem + 2.4vw, 3.4rem)/1 var(--font-mono); color: var(--line-2); }
+    .refmap code[data-op] { display: inline-block; min-width: 3.1ch; }
+
+    .deck { position: relative; margin-top: 64px; height: 480px; perspective: 1700px; }
+    .lcard {
+      --x: 0px; --ry: 0deg; --rz: 0deg; --lift: 0px; --tx: 0deg; --ty: 0deg;
+      position: absolute; left: calc(50% - 155px); top: 20px;
+      width: 310px;
+      background: var(--surface-2);
+      border: 1px solid var(--line-2); border-radius: var(--radius);
+      box-shadow: var(--shadow-lg);
+      padding: 20px 22px 22px 30px;
+      transform-style: preserve-3d;
+      transform: translateX(var(--x)) translateY(var(--lift)) rotateY(calc(var(--ry) + var(--ty))) rotateX(var(--tx)) rotateZ(var(--rz));
+      transition: transform 0.7s var(--ease), box-shadow 0.4s;
+      cursor: default;
+    }
+    .lcard::before {
+      /* tear-off perforation */
+      content: ""; position: absolute; left: 11px; top: 14px; bottom: 14px; width: 4px;
+      background: radial-gradient(circle, var(--line-2) 1.6px, transparent 2px) 0 0 / 4px 10px repeat-y;
+    }
+    .js .deck:not(.is-in) .lcard { --x: 0px !important; --ry: 0deg !important; --rz: 0deg !important; opacity: 0.001; }
+    .deck.is-in .lcard { opacity: 1; transition: transform 0.9s var(--ease), box-shadow 0.4s, opacity 0.5s; transition-delay: calc(var(--i) * 70ms); }
+    .deck.is-in .lcard.is-hot { --lift: -26px; z-index: 5; box-shadow: var(--shadow-lg), 0 0 0 1px var(--accent); transition-delay: 0s; transition-duration: 0.5s; }
+    .lc__head { display: flex; align-items: center; justify-content: space-between; }
+    .lc__type { font: 800 30px/1 var(--font-display); text-transform: uppercase; letter-spacing: 0.02em; }
+    .lc__head i { font-size: 26px; }
+    .lcard[data-kind="in"] .lc__head i { color: var(--in); }
+    .lcard[data-kind="out"] .lc__head i { color: var(--out); }
+    .lcard[data-kind="int"] .lc__head i, .lcard[data-kind="adj"] .lc__head i { color: var(--accent-ink); }
+    .lc__ref { margin-top: 14px; font: 600 22px/1 var(--font-mono); letter-spacing: -0.01em; }
+    .barcode { height: 46px; margin-top: 12px; background-color: transparent; }
+    .lc__route { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 10px; margin: 16px 0 0; }
+    .lc__route div { min-width: 0; }
+    .lc__route dt { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .lc__route dd { margin: 3px 0 0; font: 500 13px/1.25 var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lc__route i { color: var(--muted); padding-bottom: 2px; }
+    .lc__states { display: flex; flex-wrap: wrap; gap: 4px; list-style: none; padding: 14px 0 0; margin: 14px 0 0; border-top: 1px dashed var(--line-2); }
+    .lc__states li {
+      font: 600 11px/1 var(--font-body); padding: 6px 8px; border-radius: 3px;
+      color: var(--muted); background: var(--bg-2);
+      transition: background-color 0.35s, color 0.35s;
+    }
+    .lc__states li.is-on { background: var(--ink); color: var(--bg); }
+    .lc__states li.is-on[data-s="Waiting"] { background: var(--accent); color: var(--on-accent); }
+    .lc__states li.is-on[data-s="Done"] { background: var(--in); color: var(--surface-2); }
+    .lc__note { margin-top: 14px; font-size: 13.5px; line-height: 1.45; color: var(--ink-2); }
+
+    /* ------------------------------------------------------------------ live board */
+    .board { background: var(--bg-2); border-block: 1px solid var(--line); }
+    .kpis {
+      display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+      margin-top: 48px; border-block: 1px solid var(--line-2);
+    }
+    .kpi { padding: 22px 20px 20px; border-left: 1px solid var(--line); min-width: 0; }
+    .kpi:first-child { border-left: 0; padding-left: 0; }
+    .kpi__label { display: block; font-size: 13px; font-weight: 500; color: var(--muted); }
+    .kpi__val { display: inline-block; margin-top: 10px; font: 800 clamp(2.6rem, 1.9rem + 2vw, 3.8rem)/0.85 var(--font-display); letter-spacing: 0.01em; transform-origin: left bottom; }
+    .kpi__val.is-bump { animation: bump 0.55s var(--ease); }
+    @keyframes bump { 0% { transform: scale(1); } 30% { transform: scale(1.14); color: var(--accent-ink); } 100% { transform: scale(1); } }
+    .kpi__sub { display: block; margin-top: 8px; font: 500 12px/1.3 var(--font-mono); color: var(--muted); }
+    .kpi[data-alert="true"] .kpi__val { color: var(--out); }
+
+    .board__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; margin-top: 28px; }
+    .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; display: flex; flex-direction: column; }
+    .panel > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+    .panel > header h3 { font: 700 15px/1 var(--font-body); }
+    .panel__body { padding: 8px 16px 14px; flex: 1; }
+
+    .docs { list-style: none; margin: 0; padding: 0; }
+    .doc { padding: 12px 0; border-bottom: 1px dashed var(--line); display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
+    .doc:last-child { border-bottom: 0; }
+    .doc__ref { font: 600 13px/1 var(--font-mono); }
+    .doc__meta { grid-column: 1; font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+    .doc__meta b { color: var(--ink-2); font-weight: 600; }
+    .doc__act { grid-row: 1 / span 2; grid-column: 2; }
+    .doc[data-short="true"] .doc__meta b { color: var(--out); }
+    .pill { display: inline-flex; align-items: center; gap: 5px; font: 600 11px/1 var(--font-body); padding: 4px 7px; border-radius: 3px; background: var(--bg-2); color: var(--ink-2); vertical-align: 1px; margin-left: 6px; }
+    .pill[data-s="Waiting"] { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent-ink); }
+    .pill[data-s="Ready"] { background: var(--in-bg); color: var(--in); }
+    .doc-enter { animation: docin 0.5s var(--ease); }
+    @keyframes docin { from { opacity: 0; transform: translateY(-8px); } }
+    .empty { padding: 26px 0 16px; text-align: center; color: var(--muted); font-size: 13.5px; }
+    .empty i { display: block; font-size: 28px; margin: 0 auto 8px; color: var(--line-2); }
+
+    .stock-t { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .stock-t th { text-align: left; font: 600 11.5px/1 var(--font-body); color: var(--muted); padding: 12px 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+    .stock-t td { padding: 11px 8px; border-bottom: 1px dashed var(--line); vertical-align: middle; transition: background-color 0.8s; }
+    .stock-t tr:last-child td { border-bottom: 0; }
+    .stock-t th:first-child, .stock-t td:first-child { padding-left: 0; }
+    .stock-t th:last-child, .stock-t td:last-child { padding-right: 0; text-align: right; }
+    .stock-t .n { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .stock-t .p b { display: block; font-weight: 600; }
+    .stock-t .p span { font: 500 11.5px/1.3 var(--font-mono); color: var(--muted); }
+    .stock-t tr[data-low="true"] .onhand { color: var(--out); font-weight: 600; }
+    .low-flag { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; font: 600 11px/1 var(--font-body); color: var(--out); }
+    .flash-in { background: var(--in-bg); }
+    .flash-out { background: var(--out-bg); }
+    .count-form { display: inline-flex; gap: 4px; justify-content: flex-end; }
+    .count-form input {
+      width: 70px; height: 32px; padding: 0 8px; border-radius: var(--radius);
+      border: 1px solid var(--line-2); background: var(--surface-2); color: var(--ink);
+      font: 500 13px/1 var(--font-mono); text-align: right;
+    }
+    .count-form input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+    .table-scroll { overflow-x: auto; padding: 0 16px 6px; }
+
+    .moves { list-style: none; margin: 0; padding: 0; }
+    .mv { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; align-items: center; padding: 11px 0; border-bottom: 1px dashed var(--line); }
+    .mv:last-child { border-bottom: 0; }
+    .mv__dir { grid-row: span 2; width: 28px; height: 28px; border-radius: 3px; display: grid; place-items: center; font-size: 15px; }
+    .mv[data-kind="in"] .mv__dir { background: var(--in-bg); color: var(--in); }
+    .mv[data-kind="out"] .mv__dir { background: var(--out-bg); color: var(--out); }
+    .mv[data-kind="int"] .mv__dir, .mv[data-kind="adj"] .mv__dir { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent-ink); }
+    .mv__ref { font: 600 12.5px/1 var(--font-mono); }
+    .mv__qty { grid-row: span 2; font: 800 22px/1 var(--font-display); letter-spacing: 0.02em; }
+    .mv[data-kind="in"] .mv__qty { color: var(--in); }
+    .mv[data-kind="out"] .mv__qty { color: var(--out); }
+    .mv[data-kind="adj"][data-neg="true"] .mv__qty { color: var(--out); }
+    .mv[data-kind="adj"]:not([data-neg="true"]) .mv__qty { color: var(--in); }
+    .mv__path { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mv-enter { animation: mvin 0.6s var(--ease); }
+    @keyframes mvin { from { opacity: 0; transform: translateX(-10px); } }
+
+    /* ------------------------------------------------------------------ warehouses: exploded isometric stack */
+    .floors__grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(32px, 6vw, 96px); align-items: center; }
+    .iso { position: relative; height: 560px; display: grid; place-items: center; perspective: 2200px; }
+    .iso__stack {
+      --gap: 34px;
+      position: relative; width: 340px; height: 340px;
+      transform-style: preserve-3d;
+      transform: rotateX(58deg) rotateZ(-38deg);
+      transition: --gap 1s var(--ease);
+    }
+    .iso.is-in .iso__stack { --gap: 96px; }
+    .layer {
+      position: absolute; inset: 0;
+      transform: translateZ(calc(var(--k) * var(--gap)));
+      transition: transform 1.1s var(--ease);
+      transform-style: preserve-3d;
+      border-radius: var(--radius);
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .iso.is-in .layer { animation: hover 6s ease-in-out infinite; animation-delay: calc(var(--k) * -1.1s); }
+    }
+    @keyframes hover {
+      0%, 100% { transform: translateZ(calc(var(--k) * var(--gap))); }
+      50% { transform: translateZ(calc(var(--k) * var(--gap) + 10px)); }
+    }
+    .layer--wh {
+      background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+      border: 1px solid var(--line-2);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent) inset;
+      padding: 26px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .layer--wh .code { font: 800 64px/0.85 var(--font-display); letter-spacing: 0.02em; }
+    .layer--wh .name { font: 600 15px/1.3 var(--font-body); }
+    .layer--wh .addr { font: 500 12px/1.45 var(--font-mono); color: var(--muted); }
+    .layer--loc {
+      background: color-mix(in srgb, var(--surface) 90%, transparent);
+      border: 1px solid var(--line-2);
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px;
+    }
+    .cell {
+      border: 1px dashed var(--line-2); border-radius: 3px; padding: 10px;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      font: 600 12.5px/1.2 var(--font-mono);
+      transition: background-color 0.3s, border-color 0.3s, color 0.3s, transform 0.4s var(--ease);
+    }
+    .cell span { font: 500 11px/1.2 var(--font-body); color: var(--muted); margin-top: 3px; }
+    .cell.is-hot { background: var(--accent); color: var(--on-accent); border-color: var(--accent); border-style: solid; transform: translateZ(14px); }
+    .cell.is-hot span { color: color-mix(in srgb, var(--on-accent) 75%, transparent); }
+    .layer--stock {
+      background: var(--bg-2); border: 1px solid var(--line);
+      display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; gap: 8px; padding: 14px;
+    }
+    .crate {
+      background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 2px;
+      position: relative;
+      box-shadow: inset 0 -6px 0 color-mix(in srgb, var(--accent) 70%, transparent);
+    }
+    .crate:nth-child(3n) { box-shadow: inset 0 -6px 0 var(--line-2); }
+    .crate:nth-child(5n) { opacity: 0.35; box-shadow: none; }
+    .iso__shadow {
+      position: absolute; left: 50%; top: 62%; width: 420px; height: 150px;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(ellipse at center, rgb(0 0 0 / 0.28), transparent 68%);
+      filter: blur(6px); pointer-events: none;
+    }
+    :root[data-theme="light"] .iso__shadow { background: radial-gradient(ellipse at center, rgb(40 50 60 / 0.2), transparent 68%); }
+    .iso__legend { position: absolute; left: 0; bottom: 8px; display: grid; gap: 6px; font: 500 12px/1.2 var(--font-mono); color: var(--muted); }
+    .iso__legend b { color: var(--ink); font-weight: 600; }
+
+    .finder { margin-top: 32px; }
+    .finder label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+    .finder__input { position: relative; }
+    .finder__input i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 18px; }
+    .finder input {
+      width: 100%; height: 50px; padding: 0 14px 0 42px;
+      background: var(--surface-2); color: var(--ink);
+      border: 1px solid var(--line-2); border-radius: var(--radius);
+      font: 500 15px/1 var(--font-mono);
+    }
+    .finder input::placeholder { color: var(--muted); }
+    .finder input:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+    .finder__help { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .chip {
+      height: 32px; padding: 0 12px; border-radius: var(--radius);
+      border: 1px solid var(--line-2); background: transparent;
+      font: 500 12.5px/1 var(--font-mono); cursor: pointer;
+      transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .chip:hover { border-color: var(--ink-2); }
+    .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .results { list-style: none; margin: 16px 0 0; padding: 0; min-height: 250px; }
+    .res {
+      display: grid; grid-template-columns: 96px 1fr auto; gap: 12px; align-items: center;
+      padding: 10px 10px; margin: 0 -10px; border-radius: var(--radius);
+      transition: background-color 0.2s;
+    }
+    .res:hover, .res:focus-visible { background: var(--bg-2); }
+    .res__sku { font: 600 12.5px/1 var(--font-mono); }
+    .res__name { font-size: 14px; line-height: 1.3; }
+    .res__name span { display: block; font: 500 11.5px/1.3 var(--font-mono); color: var(--muted); }
+    .res__qty { font: 800 22px/1 var(--font-display); letter-spacing: 0.02em; text-align: right; }
+    .res__qty small { font: 500 11px/1 var(--font-mono); color: var(--muted); margin-left: 3px; }
+
+    /* ------------------------------------------------------------------ roles */
+    .roles { border-top: 1px solid var(--line); }
+    .roles__grid { display: grid; grid-template-columns: 1fr 1fr; margin-top: 56px; border-top: 1px solid var(--line-2); }
+    .role { padding: 40px 48px 8px 0; }
+    .role + .role { padding: 40px 0 8px 48px; border-left: 1px solid var(--line-2); }
+    .role i { font-size: 34px; color: var(--accent-ink); }
+    .role h3 { margin-top: 22px; font: 800 clamp(2rem, 1.4rem + 1.8vw, 3.1rem)/0.95 var(--font-display); text-transform: uppercase; letter-spacing: 0.01em; }
+    .role p { margin-top: 14px; max-width: 42ch; color: var(--ink-2); }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 24px 0 0; }
+    .tags li { font: 500 13px/1 var(--font-mono); padding: 9px 12px; border: 1px solid var(--line-2); border-radius: var(--radius); }
+
+    /* ------------------------------------------------------------------ closing */
+    .close { border-top: 1px solid var(--line); overflow: hidden; }
+    .close__grid { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: clamp(32px, 6vw, 96px); align-items: center; }
+    .close__title { font: 900 clamp(3rem, 1.6rem + 5vw, 6.4rem)/0.88 var(--font-display); text-transform: uppercase; letter-spacing: 0.005em; }
+    .cube-stage { height: 420px; display: grid; place-items: center; perspective: 1100px; position: relative; }
+    .cube-float { transform-style: preserve-3d; }
+    @media (prefers-reduced-motion: no-preference) {
+      .cube-float { animation: floaty 5.5s ease-in-out infinite; }
+      .cube { animation: spin 22s linear infinite; }
+    }
+    @keyframes floaty { 0%, 100% { transform: translateY(-10px); } 50% { transform: translateY(12px); } }
+    @keyframes spin { from { transform: rotateX(-24deg) rotateY(0deg); } to { transform: rotateX(-24deg) rotateY(360deg); } }
+    .cube { --s: 200px; width: var(--s); height: var(--s); position: relative; transform-style: preserve-3d; transform: rotateX(-24deg) rotateY(36deg); }
+    .face {
+      position: absolute; inset: 0;
+      background: var(--surface-2);
+      border: 1px solid var(--line-2);
+      display: grid; place-items: center;
+      backface-visibility: hidden;
+    }
+    .face::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 44%, var(--accent) 44% 56%, transparent 56%); opacity: 0.95; }
+    .face > * { position: relative; z-index: 1; }
+    .f1 { transform: translateZ(calc(var(--s) / 2)); }
+    .f2 { transform: rotateY(90deg) translateZ(calc(var(--s) / 2)); }
+    .f3 { transform: rotateY(180deg) translateZ(calc(var(--s) / 2)); }
+    .f4 { transform: rotateY(-90deg) translateZ(calc(var(--s) / 2)); }
+    .f5 { transform: rotateX(90deg) translateZ(calc(var(--s) / 2)); }
+    .f6 { transform: rotateX(-90deg) translateZ(calc(var(--s) / 2)); }
+    .f5::after { background: linear-gradient(90deg, transparent 44%, var(--accent) 44% 56%, transparent 56%); }
+    .face .lbl { background: var(--surface-2); border: 1px solid var(--line-2); padding: 8px 10px; font: 600 12px/1.2 var(--font-mono); text-align: center; }
+    .face .lbl b { display: block; font: 800 22px/1 var(--font-display); letter-spacing: 0.04em; margin-bottom: 3px; }
+    .cube-shadow { position: absolute; bottom: 40px; left: 50%; width: 240px; height: 40px; transform: translateX(-50%); background: radial-gradient(ellipse, rgb(0 0 0 / 0.35), transparent 70%); filter: blur(4px); }
+    @media (prefers-reduced-motion: no-preference) {
+      .cube-shadow { animation: shadowpulse 5.5s ease-in-out infinite; }
+    }
+    @keyframes shadowpulse { 0%, 100% { transform: translateX(-50%) scale(1.05); opacity: 0.8; } 50% { transform: translateX(-50%) scale(0.85); opacity: 0.5; } }
+
+    /* ------------------------------------------------------------------ footer */
+    .foot { position: relative; z-index: var(--z-content); background: var(--bg); border-top: 1px solid var(--line); padding: 36px 0 44px; }
+    .foot__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; }
+    .foot nav { display: flex; flex-wrap: wrap; gap: 22px; }
+    .foot nav a, .foot p { font-size: 14px; color: var(--muted); text-decoration: none; }
+    .foot nav a:hover { color: var(--ink); }
+
+    /* ------------------------------------------------------------------ responsive */
+    @media (max-width: 1180px) {
+      .board__grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+      .board__grid .panel--moves { grid-column: 1 / -1; }
+      .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .kpi:nth-child(4) { border-left: 0; padding-left: 0; }
+      .kpi:nth-child(n+4) { border-top: 1px solid var(--line); }
+    }
+    @media (max-width: 1099px) {
+      .ops__head { grid-template-columns: 1fr; gap: 40px; }
+      .deck { height: auto; perspective: none; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      .lcard, .js .deck:not(.is-in) .lcard { position: relative; left: auto; top: auto; width: auto; transform: none !important; }
+      .deck.is-in .lcard.is-hot { --lift: 0px; }
+    }
+    @media (max-width: 960px) {
+      .nav__links { display: none; }
+      .nav__menu { display: grid; }
+      .floors__grid, .close__grid { grid-template-columns: 1fr; }
+      .iso { height: 470px; order: -1; }
+      .cube-stage { height: 320px; order: -1; }
+      .cube { --s: 150px; }
+    }
+    @media (max-width: 767px) {
+      :root { --nav-h: 60px; }
+      .nav__actions .btn { display: none; }
+      .hero { align-items: flex-start; padding-top: calc(var(--nav-h) + 28px); }
+      .hero::before { background: linear-gradient(180deg, var(--bg) 0%, color-mix(in srgb, var(--bg) 88%, transparent) 50%, transparent 74%); }
+      .hero__title { font-size: clamp(3rem, 14.5vw, 4.6rem); }
+      .cta-row .btn { flex: 1 1 auto; }
+      .flow { height: 440vh; }
+      .flow__sticky { align-items: flex-end; padding-bottom: 14px; }
+      .flow__panel { padding: 18px 18px 16px; }
+      .flow__title { font-size: 1.9rem; }
+      .rail { margin-top: 14px; }
+      .steps { margin-top: 14px; }
+      .step h3 { font-size: 17px; }
+      .step p { font-size: 14px; }
+      .ledger { display: none; }
+      .flow__total { margin-top: 12px; }
+      .flow__total strong { font-size: 36px; }
+      .deck { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 84%; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 12px; margin-inline: calc(-1 * clamp(16px, 4vw, 40px)); padding-inline: clamp(16px, 4vw, 40px); }
+      .lcard { scroll-snap-align: center; }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .kpi, .kpi:nth-child(4) { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); }
+      .kpi:nth-child(-n+2) { border-top: 0; }
+      .kpi:nth-child(even) { padding-left: 16px; border-left: 1px solid var(--line); }
+      .board__grid { grid-template-columns: 1fr; }
+      .iso { height: 380px; }
+      .iso__stack { width: 240px; height: 240px; }
+      .iso.is-in .iso__stack { --gap: 70px; }
+      .layer--wh .code { font-size: 46px; }
+      .layer--wh { padding: 18px; }
+      .iso__shadow { width: 300px; }
+      .roles__grid { grid-template-columns: 1fr; }
+      .role, .role + .role { padding: 32px 0 8px; border-left: 0; }
+      .role + .role { border-top: 1px solid var(--line-2); margin-top: 24px; }
+      .res { grid-template-columns: 78px 1fr auto; }
+    }
+    @property --gap { syntax: "<length>"; inherits: true; initial-value: 34px; }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <div id="labels" aria-hidden="true"></div>
+
+  <header class="nav" data-nav>
+    <div class="wrap nav__row">
+      <a class="brand" href="#top" aria-label="StockSense home">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2l9 5-9 5-9-5z" fill="#ffb224" />
+          <path d="M3 7l9 5v10l-9-5z" fill="currentColor" />
+          <path d="M21 7l-9 5v10l9-5z" fill="currentColor" opacity=".55" />
+        </svg>
+        <span>StockSense</span>
+      </a>
+      <nav class="nav__links" aria-label="Sections">
+        <a href="#flow">Flow</a>
+        <a href="#operations">Operations</a>
+        <a href="#try">Try it</a>
+        <a href="#warehouses">Warehouses</a>
+      </nav>
+      <div class="nav__actions">
+        <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch theme"><i class="ph ph-moon"></i></button>
+        <a class="btn btn--primary btn--sm" data-app-link href="/app/">Open the app <i class="ph ph-arrow-right"></i></a>
+        <button class="icon-btn nav__menu" type="button" aria-expanded="false" aria-controls="mnav" aria-label="Open menu"><i class="ph ph-list"></i></button>
+      </div>
+    </div>
+    <div class="mnav" id="mnav" hidden>
+      <a href="#flow">Flow <i class="ph ph-arrow-down-right"></i></a>
+      <a href="#operations">Operations <i class="ph ph-arrow-down-right"></i></a>
+      <a href="#try">Try it <i class="ph ph-arrow-down-right"></i></a>
+      <a href="#warehouses">Warehouses <i class="ph ph-arrow-down-right"></i></a>
+      <a data-app-link href="/app/">Open the app <i class="ph ph-arrow-right"></i></a>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- HERO: copy left, live 3D warehouse right (rendered on the fixed canvas) -->
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="wrap">
+        <div class="hero__copy">
+          <h1 class="hero__title" id="hero-title">
+            <span class="line"><span>Every unit</span></span>
+            <span class="line"><span>has an</span></span>
+            <span class="line"><span><em>address.</em></span></span>
+          </h1>
+          <p class="hero__sub">StockSense tracks receipts, deliveries, transfers and counts across every warehouse, and writes each move to one ledger.</p>
+          <div class="cta-row">
+            <a class="btn btn--primary" data-app-link href="/app/">Open the app <i class="ph ph-arrow-right"></i></a>
+            <a class="btn btn--ghost" href="#flow">See the flow</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- The only marquee: a running tape of ledger entries -->
+    <div class="tape" aria-hidden="true">
+      <div class="tape__track" data-tape></div>
+    </div>
+
+    <!-- FLOW: the PDF's inventory example, scrubbed by scroll -->
+    <section class="flow" id="flow" aria-labelledby="flow-title">
+      <div class="flow__sticky">
+        <div class="wrap">
+          <div class="flow__panel">
+            <h2 class="flow__title" id="flow-title">Follow 100&nbsp;kg of steel</h2>
+            <ol class="rail" aria-hidden="true">
+              <li>Receive</li><li>Transfer</li><li>Deliver</li><li>Adjust</li>
+            </ol>
+            <div class="steps">
+              <article class="step is-on">
+                <h3>Receive 100 kg from the vendor</h3>
+                <p>The receipt moves from Draft to Ready to Done. On validation, on-hand stock rises by exactly what arrived.</p>
+              </article>
+              <article class="step">
+                <h3>Move 40 kg to the production rack</h3>
+                <p>An internal transfer changes the location, not the total. The company still holds 100 kg.</p>
+              </article>
+              <article class="step">
+                <h3>Deliver 20 kg to the customer</h3>
+                <p>The delivery reserves stock first, then ships. Validate it and 20 kg leaves the building.</p>
+              </article>
+              <article class="step">
+                <h3>Write off 3 kg of damage</h3>
+                <p>Count what is really on the shelf. StockSense posts the difference as an adjustment.</p>
+              </article>
+            </div>
+            <table class="ledger" aria-label="Stock ledger for this example">
+              <thead><tr><th>Reference</th><th>Move</th><th>Qty</th><th>Total</th></tr></thead>
+              <tbody>
+                <tr><td>WH/IN/0001</td><td class="mv">Vendor → WH/Stock1</td><td class="q-in">+100</td><td>100</td></tr>
+                <tr><td>WH/INT/0001</td><td class="mv">WH/Stock1 → WH/Prod</td><td class="q-int">40</td><td>100</td></tr>
+                <tr><td>WH/OUT/0001</td><td class="mv">WH/Prod → Customer</td><td class="q-out">−20</td><td>80</td></tr>
+                <tr><td>WH/ADJ/0001</td><td class="mv">WH/Prod → Loss</td><td class="q-out">−3</td><td>77</td></tr>
+              </tbody>
+            </table>
+            <div class="flow__total">
+              <span>Company stock on hand</span>
+              <strong class="num"><span data-total>0</span><small>kg</small></strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPERATIONS: four document types as tilted shipping labels -->
+    <section class="ops solid section" id="operations" aria-labelledby="ops-title">
+      <div class="wrap">
+        <div class="ops__head">
+          <div>
+            <h2 class="h2 rv" id="ops-title">Four documents. One reference format.</h2>
+            <p class="lede rv" style="--d:1">Every operation gets a reference built from its warehouse, its type and a running number, so any move traces back to the paper that caused it.</p>
+          </div>
+        <div class="refmap rv" style="--d:2" aria-label="Reference format: warehouse, operation, sequence">
+          <div class="refmap__part"><code>WH</code><span>Warehouse</span></div>
+          <span class="refmap__slash" aria-hidden="true">/</span>
+          <div class="refmap__part is-op"><code data-op>IN</code><span>Operation</span></div>
+          <span class="refmap__slash" aria-hidden="true">/</span>
+          <div class="refmap__part"><code data-seq>0007</code><span>Sequence</span></div>
+        </div>
+        </div>
+
+        <div class="deck" data-deck>
+          <article class="lcard" data-kind="in" data-op="IN" data-seq="0007" style="--i:0; --x:-390px; --ry:16deg; --rz:-3deg">
+            <div class="lc__head"><span class="lc__type">Receipt</span><i class="ph ph-arrow-down-left"></i></div>
+            <div class="lc__ref">WH/IN/0007</div>
+            <div class="barcode" data-code="WH/IN/0007"></div>
+            <dl class="lc__route"><div><dt>From</dt><dd>Azure Interior</dd></div><i class="ph ph-arrow-right"></i><div><dt>To</dt><dd>WH/Stock1</dd></div></dl>
+            <ol class="lc__states" data-states><li data-s="Draft">Draft</li><li data-s="Ready">Ready</li><li data-s="Done">Done</li></ol>
+            <p class="lc__note">Validate and on-hand stock rises by the quantity received.</p>
+          </article>
+          <article class="lcard" data-kind="out" data-op="OUT" data-seq="0012" style="--i:1; --x:-130px; --ry:6deg; --rz:-1deg">
+            <div class="lc__head"><span class="lc__type">Delivery</span><i class="ph ph-arrow-up-right"></i></div>
+            <div class="lc__ref">WH/OUT/0012</div>
+            <div class="barcode" data-code="WH/OUT/0012"></div>
+            <dl class="lc__route"><div><dt>From</dt><dd>WH/Stock1</dd></div><i class="ph ph-arrow-right"></i><div><dt>To</dt><dd>Deco Addict</dd></div></dl>
+            <ol class="lc__states" data-states><li data-s="Draft">Draft</li><li data-s="Waiting">Waiting</li><li data-s="Ready">Ready</li><li data-s="Done">Done</li></ol>
+            <p class="lc__note">Lines turn red when a product is short. Validate and stock goes down.</p>
+          </article>
+          <article class="lcard" data-kind="int" data-op="INT" data-seq="0003" style="--i:2; --x:130px; --ry:-6deg; --rz:1deg">
+            <div class="lc__head"><span class="lc__type">Transfer</span><i class="ph ph-arrows-left-right"></i></div>
+            <div class="lc__ref">WH/INT/0003</div>
+            <div class="barcode" data-code="WH/INT/0003"></div>
+            <dl class="lc__route"><div><dt>From</dt><dd>WH/Stock1</dd></div><i class="ph ph-arrow-right"></i><div><dt>To</dt><dd>WH/Production</dd></div></dl>
+            <ol class="lc__states" data-states><li data-s="Draft">Draft</li><li data-s="Ready">Ready</li><li data-s="Done">Done</li></ol>
+            <p class="lc__note">Total stock stays the same. Only the location changes.</p>
+          </article>
+          <article class="lcard" data-kind="adj" data-op="ADJ" data-seq="0002" style="--i:3; --x:390px; --ry:-16deg; --rz:3deg">
+            <div class="lc__head"><span class="lc__type">Adjustment</span><i class="ph ph-scales"></i></div>
+            <div class="lc__ref">WH/ADJ/0002</div>
+            <div class="barcode" data-code="WH/ADJ/0002"></div>
+            <dl class="lc__route"><div><dt>Recorded</dt><dd>50 u</dd></div><i class="ph ph-arrow-right"></i><div><dt>Counted</dt><dd>47 u</dd></div></dl>
+            <ol class="lc__states" data-states><li data-s="Draft">Draft</li><li data-s="Done">Done</li></ol>
+            <p class="lc__note">The physical count wins. The −3 difference is logged.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRY IT: a working slice of the app, running in the page -->
+    <section class="board solid section" id="try" aria-labelledby="try-title">
+      <div class="wrap">
+        <span class="kicker rv">Live, in this page</span>
+        <h2 class="h2 rv" id="try-title">Push stock around. Watch the ledger.</h2>
+        <p class="lede rv" style="--d:1">Validate documents or recount a shelf. The dashboard numbers react the same way they do in the real app.</p>
+
+        <div class="kpis rv" style="--d:2" aria-live="polite">
+          <div class="kpi"><span class="kpi__label">Products in stock</span><strong class="kpi__val num" data-kpi="inStock">0</strong><span class="kpi__sub" data-kpi-sub="inStock"></span></div>
+          <div class="kpi" data-kpi-wrap="low"><span class="kpi__label">Low or out of stock</span><strong class="kpi__val num" data-kpi="low">0</strong><span class="kpi__sub" data-kpi-sub="low"></span></div>
+          <div class="kpi"><span class="kpi__label">Pending receipts</span><strong class="kpi__val num" data-kpi="receipts">0</strong><span class="kpi__sub" data-kpi-sub="receipts"></span></div>
+          <div class="kpi"><span class="kpi__label">Pending deliveries</span><strong class="kpi__val num" data-kpi="deliveries">0</strong><span class="kpi__sub" data-kpi-sub="deliveries"></span></div>
+          <div class="kpi"><span class="kpi__label">Transfers scheduled</span><strong class="kpi__val num" data-kpi="transfers">0</strong><span class="kpi__sub" data-kpi-sub="transfers"></span></div>
+        </div>
+
+        <div class="board__grid">
+          <div class="panel rv" style="--d:1">
+            <header><h3>Open documents</h3><button class="btn btn--ghost btn--xs" type="button" data-new-receipt><i class="ph ph-plus"></i>New receipt</button></header>
+            <div class="panel__body"><ul class="docs" data-docs></ul></div>
+          </div>
+          <div class="panel rv" style="--d:2">
+            <header><h3>Stock</h3><span class="mono" style="font-size:12px;color:var(--muted)">WH</span></header>
+            <div class="table-scroll">
+              <table class="stock-t">
+                <thead><tr><th>Product</th><th class="n">Unit cost</th><th class="n">On hand</th><th class="n">Free</th><th><span class="sr-only">Count</span></th></tr></thead>
+                <tbody data-stock></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel panel--moves rv" style="--d:3">
+            <header><h3>Move history</h3><button class="btn btn--ghost btn--xs" type="button" data-reset><i class="ph ph-arrow-counter-clockwise"></i>Reset</button></header>
+            <div class="panel__body"><ol class="moves" data-moves></ol></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WAREHOUSES: exploded warehouse / location / stock layers + real SKU search -->
+    <section class="floors solid section" id="warehouses" aria-labelledby="wh-title">
+      <div class="wrap floors__grid">
+        <div class="iso" data-iso aria-hidden="true">
+          <div class="iso__shadow"></div>
+          <div class="iso__stack">
+            <div class="layer layer--stock" style="--k:0">
+              <div class="crate"></div><div class="crate"></div><div class="crate"></div><div class="crate"></div>
+              <div class="crate"></div><div class="crate"></div><div class="crate"></div><div class="crate"></div>
+              <div class="crate"></div><div class="crate"></div><div class="crate"></div><div class="crate"></div>
+            </div>
+            <div class="layer layer--loc" style="--k:1">
+              <div class="cell" data-loc="WH/Stock1">WH/Stock1<span>Main store</span></div>
+              <div class="cell" data-loc="WH/Stock2">WH/Stock2<span>Overflow room</span></div>
+              <div class="cell" data-loc="WH/Production">WH/Production<span>Rack P1 to P6</span></div>
+              <div class="cell" data-loc="WH/Dispatch">WH/Dispatch<span>Outbound bay</span></div>
+            </div>
+            <div class="layer layer--wh" style="--k:2">
+              <div class="code">WH</div>
+              <div>
+                <div class="name">Main Warehouse</div>
+                <div class="addr">Plot 21, GIDC Phase II<br />Naroda, Ahmedabad 382330</div>
+              </div>
+            </div>
+          </div>
+          <div class="iso__legend">
+            <span><b>Warehouse</b> name, short code, address</span>
+            <span><b>Locations</b> rooms, racks, bays</span>
+            <span><b>Stock</b> quantity per product per location</span>
+          </div>
+        </div>
+
+        <div class="floors__copy">
+          <h2 class="h2 rv" id="wh-title">Warehouses, rooms, racks. All addressable.</h2>
+          <p class="lede rv" style="--d:1">Give each warehouse a short code and as many locations as the floor needs. Search any SKU and see exactly where it sits.</p>
+          <div class="finder rv" style="--d:2">
+            <label for="sku-search">Search by SKU or product</label>
+            <div class="finder__input">
+              <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+              <input id="sku-search" type="search" autocomplete="off" spellcheck="false" placeholder="STL, chair, DESK001" aria-describedby="sku-help" />
+            </div>
+            <p class="finder__help" id="sku-help">Filters run on SKU, name and category. Pick a location to narrow it down.</p>
+            <div class="chips" role="group" aria-label="Filter by location" data-chips></div>
+            <ul class="results" data-results aria-live="polite"></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROLES -->
+    <section class="roles solid section" aria-labelledby="roles-title">
+      <div class="wrap">
+        <h2 class="h2 rv" id="roles-title">Made for the office and the floor.</h2>
+        <div class="roles__grid">
+          <div class="role rv">
+            <i class="ph ph-clipboard-text" aria-hidden="true"></i>
+            <h3>Inventory managers</h3>
+            <p>Plan what comes in and what goes out, keep an eye on low stock, and sign off on counts.</p>
+            <ul class="tags"><li>Receipts</li><li>Delivery orders</li><li>Reorder rules</li><li>Dashboard KPIs</li></ul>
+          </div>
+          <div class="role rv" style="--d:1">
+            <i class="ph ph-hand-grabbing" aria-hidden="true"></i>
+            <h3>Warehouse staff</h3>
+            <p>Pick, pack, shelve and count, with every job showing the exact location it belongs to.</p>
+            <ul class="tags"><li>Picking</li><li>Internal transfers</li><li>Shelving</li><li>Cycle counts</li></ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLOSE -->
+    <section class="close solid section" aria-labelledby="close-title">
+      <div class="wrap close__grid">
+        <div class="cube-stage" aria-hidden="true">
+          <div class="cube-float">
+            <div class="cube">
+              <div class="face f1"><div class="lbl"><b>STL-10</b>WH/Stock1</div></div>
+              <div class="face f2"><div class="lbl"><b>+100</b>WH/IN/0001</div></div>
+              <div class="face f3"><div class="lbl"><b>−20</b>WH/OUT/0001</div></div>
+              <div class="face f4"><div class="lbl"><b>77 kg</b>On hand</div></div>
+              <div class="face f5"></div>
+              <div class="face f6"></div>
+            </div>
+          </div>
+          <div class="cube-shadow"></div>
+        </div>
+        <div>
+          <h2 class="close__title rv" id="close-title">Retire the stock register.</h2>
+          <p class="lede rv" style="--d:1">Products, warehouses, operations and history in one place, updated the moment work is validated.</p>
+          <div class="cta-row rv" style="--d:2">
+            <a class="btn btn--primary" data-app-link href="/app/">Open the app <i class="ph ph-arrow-right"></i></a>
+            <a class="btn btn--ghost" href="https://github.com/divyansh2047/oodo" rel="noopener">View source <i class="ph ph-arrow-up-right"></i></a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap foot__row">
+      <a class="brand" href="#top" aria-label="Back to top">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 2l9 5-9 5-9-5z" fill="#ffb224" />
+          <path d="M3 7l9 5v10l-9-5z" fill="currentColor" />
+          <path d="M21 7l-9 5v10l9-5z" fill="currentColor" opacity=".55" />
+        </svg>
+        <span>StockSense</span>
+      </a>
+      <nav aria-label="Footer">
+        <a href="#flow">Flow</a>
+        <a href="#operations">Operations</a>
+        <a href="#try">Try it</a>
+        <a href="#warehouses">Warehouses</a>
+        <a href="https://github.com/divyansh2047/oodo" rel="noopener">GitHub</a>
+      </nav>
+      <p>© 2026 StockSense. MIT License.</p>
+    </div>
+  </footer>
+
+  <!-- ==================================================================
+       Page behaviour (no dependencies). Works without WebGL.
+       ================================================================== -->
+  <script>
+  (function () {
+    'use strict';
+    var d = document.documentElement;
+    var $ = function (s, r) { return (r || document).querySelector(s); };
+    var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+    var reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
+    var darkMQ = matchMedia('(prefers-color-scheme: dark)');
+    var clamp = function (v, a, b) { return Math.min(b, Math.max(a, v)); };
+    var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); };
+
+    /* ---------- theme ---------- */
+    function theme() { return d.getAttribute('data-theme') || (darkMQ.matches ? 'dark' : 'light'); }
+    var toggle = $('[data-theme-toggle]');
+    function syncTheme() {
+      var t = theme();
+      toggle.innerHTML = t === 'dark' ? '<i class="ph ph-sun"></i>' : '<i class="ph ph-moon"></i>';
+      toggle.setAttribute('aria-label', t === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+      $('meta[name="theme-color"]').setAttribute('content', t === 'dark' ? '#0c0e0f' : '#eef0f1');
+      window.dispatchEvent(new CustomEvent('ss:theme', { detail: t }));
+    }
+    toggle.addEventListener('click', function () {
+      var next = theme() === 'dark' ? 'light' : 'dark';
+      d.setAttribute('data-theme', next);
+      try { localStorage.setItem('ss-theme', next); } catch (e) {}
+      syncTheme();
+    });
+    darkMQ.addEventListener('change', function () { if (!d.getAttribute('data-theme')) syncTheme(); });
+    syncTheme();
+    window.__ssTheme = theme;
+
+    /* ---------- app links ---------- */
+    var appUrl = ($('meta[name="stocksense:app"]') || {}).content || '/app/';
+    if (location.protocol === 'file:') appUrl = 'http://localhost:5173/app/';
+    $$('[data-app-link]').forEach(function (a) { a.href = appUrl; });
+
+    /* ---------- nav: stuck state + mobile menu ---------- */
+    var nav = $('[data-nav]');
+    var hero = $('#top');
+    new IntersectionObserver(function (es) {
+      nav.classList.toggle('is-stuck', !es[0].isIntersecting);
+    }, { rootMargin: '-90px 0px 0px 0px', threshold: 0 }).observe($('.hero__copy'));
+    var menuBtn = $('.nav__menu'), mnav = $('#mnav');
+    function setMenu(open) {
+      menuBtn.setAttribute('aria-expanded', String(open));
+      menuBtn.innerHTML = open ? '<i class="ph ph-x"></i>' : '<i class="ph ph-list"></i>';
+      mnav.hidden = !open;
+      nav.classList.toggle('is-stuck', open || nav.classList.contains('is-stuck'));
+    }
+    menuBtn.addEventListener('click', function () { setMenu(mnav.hidden); });
+    $$('a', mnav).forEach(function (a) { a.addEventListener('click', function () { setMenu(false); }); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !mnav.hidden) { setMenu(false); menuBtn.focus(); } });
+
+    /* ---------- reveal on scroll ---------- */
+    var rio = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('is-in'); rio.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+    $$('.rv, [data-deck], [data-iso]').forEach(function (el) { rio.observe(el); });
+
+    /* ---------- ledger tape ---------- */
+    var tapeRows = [
+      ['WH/IN/0041', 'Steel rod', '+50 kg', 'in'], ['WH/OUT/0112', 'Office chair', '−10 u', 'out'],
+      ['WH/INT/0019', 'Rack A → Rack B', '12 u', 'int'], ['WH/IN/0042', 'Desk', '+24 u', 'in'],
+      ['WH/ADJ/0006', 'Hex bolt M8', '−40 u', 'out'], ['WH/OUT/0113', 'Table', '−6 u', 'out'],
+      ['WH/INT/0020', 'WH/Stock1 → WH/Production', '40 kg', 'int'], ['WH/IN/0043', 'Primer paint 4 L', '+16 u', 'in'],
+      ['WH/OUT/0114', 'Steel rod', '−20 kg', 'out'], ['WH/ADJ/0007', 'Steel rod', '−3 kg', 'out']
+    ];
+    var tapeHTML = tapeRows.map(function (r) {
+      return '<span class="tape__item"><b>' + esc(r[0]) + '</b>' + esc(r[1]) + '<em>' + esc(r[2]) + '</em></span>';
+    }).join('');
+    $('[data-tape]').innerHTML = tapeHTML + tapeHTML;
+
+    /* ---------- flow panel (scroll progress, read in rAF while visible) ---------- */
+    var flow = $('#flow');
+    var steps = $$('.step', flow), railItems = $$('.rail li', flow), rows = $$('.ledger tbody tr', flow);
+    var totalEl = $('[data-total]', flow);
+    var totals = [0, 100, 100, 80, 77];
+    var flowRaf = 0, lastStep = -1, lastDone = -1, shownTotal = 0;
+    window.__ssFlowT = 0;
+    function flowT() {
+      var r = flow.getBoundingClientRect();
+      var span = r.height - innerHeight;
+      var p = clamp(-r.top / span, 0, 1);
+      return clamp(p * 4.35 - 0.12, 0, 4);
+    }
+    function flowTick() {
+      var t = flowT();
+      window.__ssFlowT = t;
+      var s = Math.min(3, Math.floor(t));
+      if (s !== lastStep) {
+        steps.forEach(function (el, i) { el.classList.toggle('is-on', i === s); });
+        railItems.forEach(function (el, i) { el.classList.toggle('is-on', i === s); });
+        lastStep = s;
+      }
+      railItems.forEach(function (el, i) { el.style.setProperty('--fill', (clamp((t - i) / 0.8, 0, 1) * 100).toFixed(1) + '%'); });
+      var done = 0;
+      for (var i = 0; i < 4; i++) if (t >= i + 0.55) done = i + 1;
+      if (done !== lastDone) {
+        rows.forEach(function (row, i) {
+          var on = i < done;
+          if (on && !row.classList.contains('is-on')) {
+            row.classList.add('is-flash');
+            setTimeout(function () { row.classList.remove('is-flash'); }, 650);
+          }
+          row.classList.toggle('is-on', on);
+        });
+        lastDone = done;
+      }
+      var target = totals[done];
+      shownTotal += (target - shownTotal) * (reduceMQ.matches ? 1 : 0.18);
+      if (Math.abs(target - shownTotal) < 0.5) shownTotal = target;
+      totalEl.textContent = Math.round(shownTotal);
+      flowRaf = requestAnimationFrame(flowTick);
+    }
+    new IntersectionObserver(function (es) {
+      if (es[0].isIntersecting) { if (!flowRaf) flowRaf = requestAnimationFrame(flowTick); }
+      else if (flowRaf) { cancelAnimationFrame(flowRaf); flowRaf = 0; }
+    }).observe(flow);
+
+    /* ---------- barcodes (deterministic from the reference) ---------- */
+    function hash(s) { var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+    $$('[data-code]').forEach(function (el) {
+      var seed = hash(el.getAttribute('data-code')), x = 0, bars = [], dark = true, W = 120;
+      function rnd() { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; }
+      while (x < W) {
+        var w = dark ? 1 + Math.floor(rnd() * 3) : 1 + Math.floor(rnd() * 2);
+        w = Math.min(w, W - x);
+        var c = dark ? 'var(--ink)' : 'transparent';
+        bars.push(c + ' ' + (x / W * 100).toFixed(2) + '% ' + ((x + w) / W * 100).toFixed(2) + '%');
+        x += w; dark = !dark;
+      }
+      el.style.backgroundImage = 'linear-gradient(90deg,' + bars.join(',') + ')';
+    });
+
+    /* ---------- operations deck: hover focus, pointer tilt, status cycling ---------- */
+    var deck = $('[data-deck]');
+    var cards = $$('.lcard', deck);
+    var opCode = $('[data-op]'), seqCode = $('[data-seq]');
+    var fanned = matchMedia('(min-width: 1100px)');
+    function heat(card) {
+      cards.forEach(function (c) { c.classList.toggle('is-hot', c === card); });
+      if (card) { opCode.textContent = card.dataset.op; seqCode.textContent = card.dataset.seq; }
+    }
+    cards.forEach(function (card) {
+      card.addEventListener('pointerenter', function () { heat(card); });
+      card.addEventListener('focusin', function () { heat(card); });
+      card.addEventListener('pointermove', function (e) {
+        if (!fanned.matches || reduceMQ.matches) return;
+        var r = card.getBoundingClientRect();
+        var px = (e.clientX - r.left) / r.width - 0.5, py = (e.clientY - r.top) / r.height - 0.5;
+        card.style.setProperty('--ty', (px * 14).toFixed(2) + 'deg');
+        card.style.setProperty('--tx', (-py * 10).toFixed(2) + 'deg');
+      });
+      card.addEventListener('pointerleave', function () {
+        card.style.setProperty('--ty', '0deg'); card.style.setProperty('--tx', '0deg');
+      });
+      card.tabIndex = 0;
+    });
+    deck.addEventListener('pointerleave', function () { heat(null); });
+    var stateTick = 0;
+    function cycleStates() {
+      stateTick++;
+      cards.forEach(function (card, ci) {
+        var items = $$('li', card);
+        var k = (stateTick + ci) % (items.length + 1);
+        items.forEach(function (li, i) { li.classList.toggle('is-on', i === Math.min(k, items.length - 1)); });
+      });
+      if (!deck.querySelector('.is-hot')) {
+        var c = cards[stateTick % cards.length];
+        opCode.textContent = c.dataset.op; seqCode.textContent = c.dataset.seq;
+      }
+    }
+    cycleStates();
+    var stateTimer = 0;
+    new IntersectionObserver(function (es) {
+      if (es[0].isIntersecting && !reduceMQ.matches) { if (!stateTimer) stateTimer = setInterval(cycleStates, 1500); }
+      else if (stateTimer) { clearInterval(stateTimer); stateTimer = 0; }
+    }).observe(deck);
+
+    /* ---------- live board: a tiny, honest model of StockSense ---------- */
+    var inr = new Intl.NumberFormat('en-IN');
+    var seedState = function () {
+      return {
+        seq: { IN: 9, OUT: 15, INT: 4, ADJ: 3 },
+        products: [
+          { sku: 'DESK001', name: 'Desk', uom: 'u', cost: 3000, onHand: 50, min: 10 },
+          { sku: 'TBL001', name: 'Table', uom: 'u', cost: 3000, onHand: 50, min: 10 },
+          { sku: 'STL010', name: 'Steel rod', uom: 'kg', cost: 72, onHand: 77, min: 40 },
+          { sku: 'CHR004', name: 'Office chair', uom: 'u', cost: 4200, onHand: 8, min: 10 }
+        ],
+        docs: [
+          { ref: 'WH/IN/0008', type: 'in', who: 'Azure Interior', sku: 'CHR004', qty: 24 },
+          { ref: 'WH/OUT/0014', type: 'out', who: 'Deco Addict', sku: 'DESK001', qty: 5 },
+          { ref: 'WH/OUT/0015', type: 'out', who: 'Gemini Furniture', sku: 'CHR004', qty: 12 },
+          { ref: 'WH/INT/0004', type: 'int', who: 'WH/Stock1 → WH/Production', sku: 'STL010', qty: 20 },
+          { ref: 'WH/IN/0009', type: 'in', who: 'Kalinga Steel Supply', sku: 'STL010', qty: 50 }
+        ],
+        moves: [
+          { ref: 'WH/ADJ/0002', kind: 'adj', sku: 'STL010', qty: -3, path: 'WH/Production → Inventory loss', at: '09:12' },
+          { ref: 'WH/OUT/0013', kind: 'out', sku: 'TBL001', qty: -6, path: 'WH/Stock1 → Deco Addict', at: '08:47' },
+          { ref: 'WH/IN/0007', kind: 'in', sku: 'DESK001', qty: 50, path: 'Azure Interior → WH/Stock1', at: '08:05' }
+        ]
+      };
+    };
+    var S = seedState();
+    var prevKpi = {};
+    var P = function (sku) { return S.products.filter(function (p) { return p.sku === sku; })[0]; };
+    var now = function () { var t = new Date(); return String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0'); };
+
+    // Reserve stock for outgoing documents in order. Anything short is Waiting.
+    function reserve() {
+      var held = {};
+      S.products.forEach(function (p) { held[p.sku] = 0; });
+      S.docs.forEach(function (doc) {
+        if (doc.type === 'in') { doc.status = 'Ready'; return; }
+        var p = P(doc.sku), free = p.onHand - held[doc.sku];
+        if (free >= doc.qty) { doc.status = 'Ready'; held[doc.sku] += doc.qty; doc.short = 0; }
+        else { doc.status = 'Waiting'; doc.short = doc.qty - Math.max(0, free); }
+      });
+      S.products.forEach(function (p) { p.reserved = held[p.sku]; });
+    }
+
+    function log(kind, ref, sku, qty, path) {
+      S.moves.unshift({ ref: ref, kind: kind, sku: sku, qty: qty, path: path, at: now(), fresh: true });
+      S.moves = S.moves.slice(0, 7);
+    }
+
+    var flashes = {};
+    function validate(ref) {
+      var i = S.docs.findIndex(function (x) { return x.ref === ref; });
+      if (i < 0) return;
+      var doc = S.docs[i], p = P(doc.sku);
+      if (doc.status !== 'Ready') return;
+      if (doc.type === 'in') { p.onHand += doc.qty; log('in', doc.ref, doc.sku, doc.qty, doc.who + ' → WH/Stock1'); flashes[doc.sku] = 'in'; }
+      if (doc.type === 'out') { p.onHand -= doc.qty; log('out', doc.ref, doc.sku, -doc.qty, 'WH/Stock1 → ' + doc.who); flashes[doc.sku] = 'out'; }
+      if (doc.type === 'int') { log('int', doc.ref, doc.sku, doc.qty, doc.who); }
+      S.docs.splice(i, 1);
+      render();
+    }
+
+    function count(sku, counted) {
+      var p = P(sku);
+      var diff = counted - p.onHand;
+      if (!diff) { render(); return; }
+      p.onHand = counted;
+      var ref = 'WH/ADJ/' + String(S.seq.ADJ++).padStart(4, '0');
+      log('adj', ref, sku, diff, diff < 0 ? 'WH/Stock1 → Inventory loss' : 'Inventory loss → WH/Stock1');
+      flashes[sku] = diff < 0 ? 'out' : 'in';
+      render();
+    }
+
+    var vendors = ['Azure Interior', 'Kalinga Steel Supply', 'Lumen Office Works', 'Sahyadri Timber Co.'];
+    function newReceipt() {
+      var p = S.products[Math.floor(Math.random() * S.products.length)];
+      var qty = p.uom === 'kg' ? 25 + Math.floor(Math.random() * 6) * 5 : 4 + Math.floor(Math.random() * 16);
+      S.docs.unshift({ ref: 'WH/IN/' + String(S.seq.IN++).padStart(4, '0'), type: 'in', who: vendors[Math.floor(Math.random() * vendors.length)], sku: p.sku, qty: qty, fresh: true });
+      render();
+    }
+
+    var docsEl = $('[data-docs]'), stockEl = $('[data-stock]'), movesEl = $('[data-moves]');
+    var countOpen = null;
+
+    function render() {
+      reserve();
+      // documents
+      if (!S.docs.length) {
+        docsEl.innerHTML = '<li class="empty"><i class="ph ph-check-circle"></i>Nothing waiting. Add a receipt to keep going.</li>';
+      } else {
+        docsEl.innerHTML = S.docs.map(function (doc) {
+          var p = P(doc.sku);
+          var sign = doc.type === 'in' ? '+' : doc.type === 'out' ? '−' : '';
+          var meta = esc(doc.who) + '<br><b>' + sign + doc.qty + ' ' + esc(p.uom) + ' ' + esc(p.name) + '</b>' + (doc.status === 'Waiting' ? ' short by ' + doc.short : '');
+          var btn = doc.status === 'Ready'
+            ? '<button class="btn btn--primary btn--xs" type="button" data-validate="' + esc(doc.ref) + '">Validate</button>'
+            : '<button class="btn btn--ghost btn--xs" type="button" disabled aria-disabled="true">Waiting</button>';
+          return '<li class="doc' + (doc.fresh ? ' doc-enter' : '') + '" data-short="' + (doc.status === 'Waiting') + '">' +
+            '<span class="doc__ref">' + esc(doc.ref) + '<span class="pill" data-s="' + doc.status + '">' + doc.status + '</span></span>' +
+            '<span class="doc__act">' + btn + '</span>' +
+            '<span class="doc__meta">' + meta + '</span></li>';
+        }).join('');
+        S.docs.forEach(function (d) { d.fresh = false; });
+      }
+      // stock
+      stockEl.innerHTML = S.products.map(function (p) {
+        var low = p.onHand <= p.min;
+        var free = p.onHand - p.reserved;
+        var fl = flashes[p.sku] ? ' class="flash-' + flashes[p.sku] + '"' : '';
+        var countCell = countOpen === p.sku
+          ? '<form class="count-form" data-count-form="' + p.sku + '"><label class="sr-only" for="c-' + p.sku + '">Counted quantity for ' + esc(p.name) + '</label><input id="c-' + p.sku + '" type="number" min="0" step="1" inputmode="numeric" value="' + p.onHand + '" required><button class="btn btn--primary btn--xs" type="submit" aria-label="Apply count"><i class="ph ph-check"></i></button></form>'
+          : '<button class="btn btn--ghost btn--xs" type="button" data-count="' + p.sku + '">Count</button>';
+        return '<tr data-low="' + low + '"' + fl + '>' +
+          '<td class="p"><b>' + esc(p.name) + '</b><span>[' + esc(p.sku) + ']</span>' + (low ? '<span class="low-flag"><i class="ph-fill ph-warning"></i>Below min ' + p.min + '</span>' : '') + '</td>' +
+          '<td class="n">₹' + inr.format(p.cost) + '</td>' +
+          '<td class="n onhand">' + p.onHand + ' ' + esc(p.uom) + '</td>' +
+          '<td class="n">' + free + '</td>' +
+          '<td>' + countCell + '</td></tr>';
+      }).join('');
+      Object.keys(flashes).forEach(function (k) { delete flashes[k]; });
+      setTimeout(function () { $$('tr[class^="flash-"]', stockEl).forEach(function (tr) { tr.className = ''; }); }, 60);
+      if (countOpen) { var inp = $('#c-' + countOpen); if (inp) { inp.focus(); inp.select(); } }
+      // moves
+      movesEl.innerHTML = S.moves.map(function (m) {
+        var p = P(m.sku);
+        var icon = m.kind === 'in' ? 'ph-arrow-down-left' : m.kind === 'out' ? 'ph-arrow-up-right' : m.kind === 'int' ? 'ph-arrows-left-right' : 'ph-scales';
+        var q = m.kind === 'int' ? String(m.qty) : (m.qty > 0 ? '+' : '−') + Math.abs(m.qty);
+        return '<li class="mv' + (m.fresh ? ' mv-enter' : '') + '" data-kind="' + m.kind + '" data-neg="' + (m.qty < 0) + '">' +
+          '<span class="mv__dir"><i class="ph ' + icon + '"></i></span>' +
+          '<span class="mv__ref">' + esc(m.ref) + ' <span style="color:var(--muted);font-weight:500">' + m.at + '</span></span>' +
+          '<span class="mv__qty num">' + q + '</span>' +
+          '<span class="mv__path">' + esc(p.name) + ', ' + esc(m.path) + '</span></li>';
+      }).join('');
+      S.moves.forEach(function (m) { m.fresh = false; });
+      // KPIs (the five from the brief)
+      var inStock = S.products.filter(function (p) { return p.onHand > 0; });
+      var low = S.products.filter(function (p) { return p.onHand <= p.min; });
+      var rec = S.docs.filter(function (x) { return x.type === 'in'; });
+      var del = S.docs.filter(function (x) { return x.type === 'out'; });
+      var tr = S.docs.filter(function (x) { return x.type === 'int'; });
+      var units = S.products.reduce(function (a, p) { return a + (p.uom === 'u' ? p.onHand : 0); }, 0);
+      setKpi('inStock', inStock.length, units + ' units + ' + P('STL010').onHand + ' kg');
+      setKpi('low', low.length, low.length ? low.map(function (p) { return p.name; }).join(', ') : 'All above minimum');
+      setKpi('receipts', rec.length, rec.length ? rec.length + ' ready to validate' : 'Nothing inbound');
+      var waiting = del.filter(function (x) { return x.status === 'Waiting'; }).length;
+      setKpi('deliveries', del.length, waiting ? waiting + ' waiting on stock' : (del.length ? 'All ready' : 'Nothing outbound'));
+      setKpi('transfers', tr.length, tr.length ? 'Stock1 → Production' : 'None scheduled');
+      $('[data-kpi-wrap="low"]').setAttribute('data-alert', String(low.length > 0));
+    }
+    function setKpi(key, val, sub) {
+      var el = $('[data-kpi="' + key + '"]');
+      if (prevKpi[key] !== undefined && prevKpi[key] !== val && !reduceMQ.matches) {
+        el.classList.remove('is-bump'); void el.offsetWidth; el.classList.add('is-bump');
+      }
+      prevKpi[key] = val;
+      el.textContent = val;
+      $('[data-kpi-sub="' + key + '"]').textContent = sub;
+    }
+
+    $('#try').addEventListener('click', function (e) {
+      var v = e.target.closest('[data-validate]');
+      if (v) { validate(v.getAttribute('data-validate')); return; }
+      var c = e.target.closest('[data-count]');
+      if (c) { countOpen = c.getAttribute('data-count'); render(); return; }
+      if (e.target.closest('[data-new-receipt]')) { newReceipt(); return; }
+      if (e.target.closest('[data-reset]')) { S = seedState(); countOpen = null; prevKpi = {}; render(); }
+    });
+    $('#try').addEventListener('submit', function (e) {
+      var f = e.target.closest('[data-count-form]');
+      if (!f) return;
+      e.preventDefault();
+      var v = parseInt($('input', f).value, 10);
+      var sku = f.getAttribute('data-count-form');
+      countOpen = null;
+      if (isFinite(v) && v >= 0 && v < 1e7) count(sku, v); else render();
+    });
+    $('#try').addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && countOpen) { var sku = countOpen; countOpen = null; render(); var b = $('[data-count="' + sku + '"]'); if (b) b.focus(); }
+    });
+    render();
+
+    /* ---------- SKU finder ---------- */
+    var quants = [
+      { sku: 'DESK001', name: 'Desk', cat: 'Furniture', loc: 'WH/Stock1', qty: 38, uom: 'u' },
+      { sku: 'DESK001', name: 'Desk', cat: 'Furniture', loc: 'WH/Stock2', qty: 12, uom: 'u' },
+      { sku: 'TBL001', name: 'Table', cat: 'Furniture', loc: 'WH/Stock1', qty: 50, uom: 'u' },
+      { sku: 'CHR004', name: 'Office chair', cat: 'Furniture', loc: 'WH/Stock2', qty: 8, uom: 'u' },
+      { sku: 'STL010', name: 'Steel rod', cat: 'Raw material', loc: 'WH/Stock1', qty: 37, uom: 'kg' },
+      { sku: 'STL010', name: 'Steel rod', cat: 'Raw material', loc: 'WH/Production', qty: 40, uom: 'kg' },
+      { sku: 'BLT220', name: 'Hex bolt M8', cat: 'Hardware', loc: 'WH/Production', qty: 1240, uom: 'u' },
+      { sku: 'PNT031', name: 'Primer paint 4 L', cat: 'Consumables', loc: 'WH/Dispatch', qty: 16, uom: 'u' }
+    ];
+    var locs = ['All', 'WH/Stock1', 'WH/Stock2', 'WH/Production', 'WH/Dispatch'];
+    var chipsEl = $('[data-chips]'), resEl = $('[data-results]'), q = $('#sku-search');
+    var cells = $$('.cell');
+    var activeLoc = 'All';
+    chipsEl.innerHTML = locs.map(function (l) { return '<button class="chip" type="button" aria-pressed="' + (l === 'All') + '" data-loc="' + l + '">' + l + '</button>'; }).join('');
+    function hot(loc) { cells.forEach(function (c) { c.classList.toggle('is-hot', !!loc && c.dataset.loc === loc); }); }
+    function find() {
+      var term = q.value.trim().toLowerCase();
+      var list = quants.filter(function (x) {
+        var t = !term || (x.sku + ' ' + x.name + ' ' + x.cat).toLowerCase().indexOf(term) > -1;
+        return t && (activeLoc === 'All' || x.loc === activeLoc);
+      });
+      if (!list.length) {
+        resEl.innerHTML = '<li class="empty"><i class="ph ph-package"></i>No stock matches “' + esc(q.value.trim()) + '” here. Try a SKU prefix like DESK or STL.</li>';
+        return;
+      }
+      resEl.innerHTML = list.map(function (x) {
+        return '<li class="res" tabindex="0" data-loc="' + x.loc + '"><span class="res__sku">' + x.sku + '</span>' +
+          '<span class="res__name">' + esc(x.name) + '<span>' + x.loc + '</span></span>' +
+          '<span class="res__qty num">' + inr.format(x.qty) + '<small>' + x.uom + '</small></span></li>';
+      }).join('');
+    }
+    chipsEl.addEventListener('click', function (e) {
+      var b = e.target.closest('.chip'); if (!b) return;
+      activeLoc = b.dataset.loc;
+      $$('.chip', chipsEl).forEach(function (c) { c.setAttribute('aria-pressed', String(c === b)); });
+      hot(activeLoc === 'All' ? null : activeLoc);
+      find();
+    });
+    q.addEventListener('input', find);
+    resEl.addEventListener('pointerover', function (e) { var r = e.target.closest('.res'); if (r) hot(r.dataset.loc); });
+    resEl.addEventListener('focusin', function (e) { var r = e.target.closest('.res'); if (r) hot(r.dataset.loc); });
+    resEl.addEventListener('pointerleave', function () { hot(activeLoc === 'All' ? null : activeLoc); });
+    find();
+  })();
+  </script>
+
+  <!-- ==================================================================
+       3D warehouse (Three.js). Deterministic: every crate's position is a
+       pure function of story time t in [0, 4], so the hero can autoplay it
+       and the flow section can scrub it with the scrollbar, both ways.
+       ================================================================== -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+    const d = document.documentElement;
+    const canvas = document.getElementById('scene');
+    const labelsEl = document.getElementById('labels');
+    const heroEl = document.getElementById('top');
+    const flowEl = document.getElementById('flow');
+    const reduceMQ = matchMedia('(prefers-reduced-motion: reduce)');
+    const narrowMQ = matchMedia('(max-width: 767px)');
+    const Q = new URLSearchParams(location.search);
+
+    const V = (x, y, z) => new THREE.Vector3(x, y, z);
+    const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+    const smooth = (t) => t * t * (3 - 2 * t);
+    const easeIO = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const lerp = (a, b, t) => a + (b - a) * t;
+
+    function hasWebGL() {
+      try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); }
+      catch (e) { return false; }
+    }
+
+    if (hasWebGL()) {
+      try { start(); } catch (err) { console.warn('StockSense 3D disabled:', err); d.classList.remove('webgl-on'); }
+    }
+
+    function start() {
+      const narrowAtLoad = narrowMQ.matches;
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, narrowAtLoad ? 1.5 : 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.setClearColor(0x000000, 0);
+      d.classList.add('webgl-on');
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.Fog(0x0c0e0f, 24, 62);
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+      const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 200);
+
+      /* ---------------- palette ---------------- */
+      const PAL = {
+        dark: {
+          bg: 0x0c0e0f, floor: 0x15181a, grid: 0x23282c, gridBold: 0x2e3439, lane: 0xffb224,
+          steel: 0x5d646b, beam: 0xffb224, deck: 0x2b3034, crate: 0xd6d9dc, ambient: 0x9aa1a7, edge: 0x0c0e0f, edgeOp: 0.55,
+          pallet: 0x33393e, tire: 0x151719, truck: 0x2a2f33, cab: 0x3a4046, glass: 0x0e1113, agv: 0x1d2124, wall: 0x121517, wallRib: 0x1a1e21, stencil: 'rgba(255,178,36,0.2)',
+          hemiSky: 0xc9d6ea, hemiGround: 0x16120c, hemi: 0.55, key: 2.3, env: 0.35, dust: 0xffc861, dustOp: 0.35
+        },
+        light: {
+          bg: 0xeef0f1, floor: 0xe6e9eb, grid: 0xd5d9dc, gridBold: 0xc6cbcf, lane: 0xf2a600,
+          steel: 0x6c737a, beam: 0xf5a300, deck: 0xc2c7cb, crate: 0xffffff, ambient: 0xe4e7e9, edge: 0x2e3439, edgeOp: 0.4,
+          pallet: 0x5a6168, tire: 0x3d4348, truck: 0xa3aab0, cab: 0x7d858c, glass: 0x2a3036, agv: 0x3b4146, wall: 0xdfe2e5, wallRib: 0xd2d6da, stencil: 'rgba(170,110,0,0.24)',
+          hemiSky: 0xffffff, hemiGround: 0xb4ada2, hemi: 1.0, key: 2.4, env: 0.55, dust: 0x9a6b00, dustOp: 0.25
+        }
+      };
+
+      /* ---------------- materials ---------------- */
+      const M = {
+        floor: new THREE.MeshStandardMaterial({ roughness: 0.92, metalness: 0 }),
+        wall: new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 }),
+        steel: new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.55 }),
+        beam: new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.2, emissiveIntensity: 0.12 }),
+        deck: new THREE.MeshStandardMaterial({ roughness: 0.7, metalness: 0.4 }),
+        pallet: new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0.05 }),
+        truck: new THREE.MeshStandardMaterial({ roughness: 0.55, metalness: 0.35 }),
+        cab: new THREE.MeshStandardMaterial({ roughness: 0.45, metalness: 0.4 }),
+        glass: new THREE.MeshStandardMaterial({ roughness: 0.15, metalness: 0.8 }),
+        tire: new THREE.MeshStandardMaterial({ roughness: 0.9 }),
+        agv: new THREE.MeshStandardMaterial({ roughness: 0.5, metalness: 0.4 }),
+        ambient: new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0 }),
+        lane: new THREE.MeshBasicMaterial({ fog: true }),
+        led: new THREE.MeshBasicMaterial({ color: 0xffb224 }),
+        edge: new THREE.LineBasicMaterial({ transparent: true }),
+        danger: new THREE.LineBasicMaterial({ color: 0xff6b5b }),
+        dust: new THREE.PointsMaterial({ size: 0.045, transparent: true, depthWrite: false, sizeAttenuation: true })
+      };
+      const hex = (n) => '#' + n.toString(16).padStart(6, '0');
+
+      function floorTexture(p) {
+        const c = document.createElement('canvas'); c.width = c.height = 512;
+        const g = c.getContext('2d');
+        g.fillStyle = hex(p.floor); g.fillRect(0, 0, 512, 512);
+        g.strokeStyle = hex(p.grid); g.lineWidth = 2;
+        for (let i = 0; i <= 512; i += 128) {
+          g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 512); g.stroke();
+          g.beginPath(); g.moveTo(0, i); g.lineTo(512, i); g.stroke();
+        }
+        g.strokeStyle = hex(p.gridBold); g.lineWidth = 3;
+        g.strokeRect(1.5, 1.5, 509, 509);
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.repeat.set(27, 27);
+        t.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        return t;
+      }
+      function wallTexture(p) {
+        const c = document.createElement('canvas'); c.width = 2048; c.height = 256;
+        const g = c.getContext('2d');
+        g.fillStyle = hex(p.wall); g.fillRect(0, 0, 2048, 256);
+        g.fillStyle = hex(p.wallRib);
+        for (let x = 0; x < 2048; x += 32) g.fillRect(x, 0, 6, 256);
+        g.fillStyle = p.stencil;
+        g.font = '800 104px "Big Shoulders Display", "Arial Narrow", sans-serif';
+        g.textBaseline = 'middle';
+        g.fillText('WH  MAIN WAREHOUSE', 120, 140);
+        g.font = '600 44px "IBM Plex Mono", monospace';
+        g.fillText('BAY 01 TO 07', 1540, 150);
+        g.fillStyle = 'rgba(255,178,36,0.8)';
+        for (let x = 0; x < 2048; x += 48) { g.beginPath(); g.moveTo(x, 236); g.lineTo(x + 24, 236); g.lineTo(x + 44, 256); g.lineTo(x + 20, 256); g.fill(); }
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 4;
+        return t;
+      }
+      function hazardTexture() {
+        const c = document.createElement('canvas'); c.width = c.height = 128;
+        const g = c.getContext('2d');
+        g.fillStyle = '#ffb224';
+        for (let i = -128; i < 256; i += 32) {
+          g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 16, 0); g.lineTo(i + 16 + 128, 128); g.lineTo(i + 128, 128); g.closePath(); g.fill();
+        }
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        return t;
+      }
+      function crateTexture(tag) {
+        const c = document.createElement('canvas'); c.width = c.height = 256;
+        const g = c.getContext('2d');
+        g.fillStyle = '#dcdfe1'; g.fillRect(0, 0, 256, 256);
+        g.fillStyle = 'rgba(0,0,0,0.045)';
+        for (let y = 0; y < 256; y += 18) g.fillRect(0, y, 256, 1);
+        g.fillStyle = '#ffb224'; g.fillRect(106, 0, 44, 256);
+        g.fillStyle = 'rgba(0,0,0,0.08)'; g.fillRect(106, 0, 2, 256); g.fillRect(148, 0, 2, 256);
+        g.fillStyle = '#fbfbfb'; g.fillRect(20, 146, 72, 88);
+        g.fillStyle = '#15181a';
+        let x = 26, s = tag.length * 7919;
+        while (x < 86) { s = (s * 16807) % 2147483647; const w = 1 + (s % 3); g.fillRect(x, 156, w, 44); x += w + 1 + ((s >> 3) % 2); }
+        g.font = '600 13px monospace'; g.fillText(tag, 27, 222);
+        g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 3; g.strokeRect(1.5, 1.5, 253, 253);
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 4;
+        return t;
+      }
+      function plainCrateTexture() {
+        const c = document.createElement('canvas'); c.width = c.height = 128;
+        const g = c.getContext('2d');
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, 128, 128);
+        g.fillStyle = 'rgba(0,0,0,0.05)';
+        for (let y = 0; y < 128; y += 10) g.fillRect(0, y, 128, 1);
+        g.fillStyle = 'rgba(0,0,0,0.16)'; g.fillRect(56, 0, 16, 128);
+        g.fillStyle = '#f2f2f2'; g.fillRect(12, 76, 34, 40);
+        g.strokeStyle = 'rgba(0,0,0,0.3)'; g.lineWidth = 2; g.strokeRect(1, 1, 126, 126);
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+
+      /* ---------------- lights ---------------- */
+      const hemi = new THREE.HemisphereLight(0xffffff, 0x222222, 0.6);
+      scene.add(hemi);
+      const key = new THREE.DirectionalLight(0xffffff, 2.2);
+      key.position.set(-9, 17, 11);
+      key.castShadow = true;
+      key.shadow.mapSize.set(narrowAtLoad ? 1024 : 2048, narrowAtLoad ? 1024 : 2048);
+      Object.assign(key.shadow.camera, { left: -18, right: 18, top: 13, bottom: -13, near: 1, far: 55 });
+      key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
+      scene.add(key, key.target);
+      key.target.position.set(0, 0, -0.5);
+
+      /* ---------------- world layout ---------------- */
+      const LANE_Z = 2.05, CARRY = 0.16, BED_Y = 1.0;
+      const RACK_A = V(-4.2, 0, 0), RACK_B = V(3.2, 0, 0);
+      const BACK_ROW = [-11.4, -7.8, -4.2, -0.6, 3.0, 6.6, 10.2].map((x) => V(x, 0, -3.3));
+      const TRUCK_IN_X = -12.8, TRUCK_OUT_X = 12.8;
+      const LOSS = V(6.55, 0, 0.35);
+
+      const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), M.floor);
+      floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true;
+      scene.add(floor);
+
+      const wall = new THREE.Mesh(new THREE.PlaneGeometry(40, 5), M.wall);
+      wall.position.set(-0.6, 2.5, -5.4);
+      wall.receiveShadow = true;
+      scene.add(wall);
+
+      const box = (w, h, dd, mat, x, y, z, shadows = true) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, dd), mat);
+        m.position.set(x, y, z);
+        if (shadows) { m.castShadow = true; m.receiveShadow = true; }
+        return m;
+      };
+      const stripe = (x1, z1, x2, z2, w = 0.07) => {
+        const len = Math.hypot(x2 - x1, z2 - z1);
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(len, w), M.lane);
+        m.rotation.x = -Math.PI / 2;
+        m.rotation.z = -Math.atan2(z2 - z1, x2 - x1);
+        m.position.set((x1 + x2) / 2, 0.006, (z1 + z2) / 2);
+        return m;
+      };
+
+      // floor tape: the lane and each rack footprint
+      scene.add(stripe(-9.4, LANE_Z - 0.66, 9.4, LANE_Z - 0.66), stripe(-9.4, LANE_Z + 0.66, 9.4, LANE_Z + 0.66));
+      for (const r of [RACK_A, RACK_B]) {
+        const x0 = r.x - 1.85, x1 = r.x + 1.85, z0 = r.z - 0.72, z1 = r.z + 0.72;
+        scene.add(stripe(x0, z0, x1, z0, 0.05), stripe(x0, z1, x1, z1, 0.05), stripe(x0, z0, x0, z1, 0.05), stripe(x1, z0, x1, z1, 0.05));
+      }
+      const hazardMats = [];
+      for (const x of [-9.95, 9.95]) {
+        const t = hazardTexture(); t.repeat.set(1.2, 2.2);
+        const mat = new THREE.MeshBasicMaterial({ map: t, transparent: true, fog: true });
+        hazardMats.push(mat);
+        const m = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 2.4), mat);
+        m.rotation.x = -Math.PI / 2; m.position.set(x, 0.007, LANE_Z);
+        scene.add(m);
+      }
+
+      /* racks: every upright, beam and deck across all racks is one instanced draw */
+      const allRacks = [RACK_A, RACK_B, ...BACK_ROW];
+      const uprightGeo = new THREE.BoxGeometry(0.08, 3.1, 0.08);
+      const beamGeo = new THREE.BoxGeometry(3.36, 0.09, 0.05);
+      const deckGeo = new THREE.BoxGeometry(3.24, 0.03, 0.98);
+      const uprights = new THREE.InstancedMesh(uprightGeo, M.steel, allRacks.length * 6);
+      const beams = new THREE.InstancedMesh(beamGeo, M.beam, allRacks.length * 6);
+      const decks = new THREE.InstancedMesh(deckGeo, M.deck, allRacks.length * 2);
+      const mtx = new THREE.Matrix4();
+      let ui = 0, bi = 0, di = 0;
+      const bracing = [];
+      for (const r of allRacks) {
+        for (const x of [-1.64, 0, 1.64]) for (const z of [-0.5, 0.5]) uprights.setMatrixAt(ui++, mtx.makeTranslation(r.x + x, 1.55, r.z + z));
+        for (const y of [1.0, 2.0, 3.02]) for (const z of [-0.5, 0.5]) beams.setMatrixAt(bi++, mtx.makeTranslation(r.x, y, r.z + z));
+        for (const y of [1.03, 2.03]) decks.setMatrixAt(di++, mtx.makeTranslation(r.x, y, r.z));
+        for (const x of [-1.64, 0, 1.64]) for (let i = 0; i < 5; i++) {
+          const y0 = 0.15 + i * 0.58;
+          bracing.push(r.x + x, y0, r.z + (i % 2 ? 0.5 : -0.5), r.x + x, y0 + 0.58, r.z + (i % 2 ? -0.5 : 0.5));
+        }
+      }
+      for (const im of [uprights, beams, decks]) { im.castShadow = true; im.receiveShadow = true; scene.add(im); }
+      const braceGeo = new THREE.BufferGeometry();
+      braceGeo.setAttribute('position', new THREE.Float32BufferAttribute(bracing, 3));
+      scene.add(new THREE.LineSegments(braceGeo, M.edge));
+
+      // inventory-loss bin (the virtual location adjustments post to)
+      {
+        const g = new THREE.Group();
+        const w = 1.1, h = 0.62, dpt = 1.0, t = 0.04;
+        g.add(box(w, t, dpt, M.steel, 0, t / 2, 0));
+        g.add(box(w, h, t, M.steel, 0, h / 2, -dpt / 2), box(w, h, t, M.steel, 0, h / 2, dpt / 2));
+        g.add(box(t, h, dpt, M.steel, -w / 2, h / 2, 0), box(t, h, dpt, M.steel, w / 2, h / 2, 0));
+        const rl = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(w, h, dpt)), M.danger);
+        rl.position.y = h / 2;
+        g.add(rl);
+        g.position.copy(LOSS);
+        scene.add(g);
+      }
+
+      // flatbed trucks. dir = -1 puts the cab on the left.
+      function buildTruck(cx, dir) {
+        const g = new THREE.Group();
+        const wheels = [];
+        g.add(box(4.5, 0.2, 2.1, M.truck, 0, BED_Y - 0.1, 0));
+        g.add(box(4.5, 0.16, 0.05, M.truck, 0, BED_Y + 0.08, -1.03), box(4.5, 0.16, 0.05, M.truck, 0, BED_Y + 0.08, 1.03));
+        g.add(box(0.05, 0.5, 2.1, M.truck, dir * 2.25, BED_Y + 0.25, 0));
+        g.add(box(6.4, 0.24, 1.3, M.agv, dir * 0.95, 0.62, 0));
+        g.add(box(1.7, 1.95, 2.1, M.cab, dir * 3.2, 1.5, 0));
+        g.add(box(0.05, 0.75, 1.8, M.glass, dir * 4.06, 1.95, 0, false));
+        g.add(box(1.1, 0.7, 0.05, M.glass, dir * 3.25, 1.95, 1.06, false), box(1.1, 0.7, 0.05, M.glass, dir * 3.25, 1.95, -1.06, false));
+        const wg = new THREE.CylinderGeometry(0.43, 0.43, 0.32, 22);
+        for (const x of [dir * -1.55, dir * -0.7, dir * 3.1]) for (const z of [-0.95, 0.95]) {
+          const w = new THREE.Mesh(wg, M.tire); w.rotation.x = Math.PI / 2; w.position.set(x, 0.43, z); w.castShadow = true;
+          g.add(w); wheels.push(w);
+        }
+        g.position.set(cx, 0, LANE_Z);
+        scene.add(g);
+        return { g, wheels, baseX: cx };
+      }
+      const truckIn = buildTruck(TRUCK_IN_X, -1);
+      const truckOut = buildTruck(TRUCK_OUT_X, 1);
+      for (const s of [-1, 1]) {
+        const len = Math.hypot(1.2, BED_Y - CARRY);
+        const m = box(len, 0.04, 1.6, M.deck, s * 9.85, (BED_Y + CARRY) / 2 - 0.02, LANE_Z);
+        m.rotation.z = s * Math.atan2(BED_Y - CARRY, 1.2);
+        scene.add(m);
+      }
+
+      /* ---------------- slots ---------------- */
+      const rackSlots = (r) => {
+        const out = [];
+        for (const y of [0, 1.045, 2.045]) for (const x of [-1.22, -0.41, 0.41, 1.22]) out.push({ kind: 'rack', p: V(r.x + x, y, r.z) });
+        return out;
+      };
+      const S1 = rackSlots(RACK_A), PR = rackSlots(RACK_B);
+      const TIN = [], TOUT = [];
+      for (const x of [-10.95, -11.75, -12.55, -13.35, -14.15]) for (const z of [-0.43, 0.43]) TIN.push({ kind: 'tin', p: V(x, BED_Y, LANE_Z + z) });
+      for (const x of [10.95, 11.75]) for (const z of [-0.43, 0.43]) TOUT.push({ kind: 'tout', p: V(x, BED_Y, LANE_Z + z) });
+
+      /* ambient stock: static, instanced, fills the slots the story never touches */
+      {
+        let seed = 11;
+        const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+        const spots = [];
+        [10, 11].forEach((i) => spots.push(S1[i].p));
+        [5, 6, 8, 9, 11].forEach((i) => spots.push(PR[i].p));
+        BACK_ROW.forEach((r) => rackSlots(r).forEach((s) => { if (rnd() > 0.28) spots.push(s.p); }));
+        const amb = new THREE.InstancedMesh(new THREE.BoxGeometry(0.64, 0.5, 0.64), M.ambient, spots.length);
+        const pal = new THREE.InstancedMesh(new THREE.BoxGeometry(0.72, 0.1, 0.72), M.pallet, spots.length);
+        M.ambient.map = plainCrateTexture();
+        const q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3();
+        spots.forEach((p, i) => {
+          const hgt = 0.7 + rnd() * 0.3;
+          sc.set(0.9 + rnd() * 0.12, hgt, 0.9 + rnd() * 0.12);
+          q.setFromAxisAngle(V(0, 1, 0), (rnd() - 0.5) * 0.12);
+          ps.set(p.x, p.y + 0.1 + 0.25 * hgt, p.z);
+          amb.setMatrixAt(i, mtx.compose(ps, q, sc));
+          pal.setMatrixAt(i, mtx.makeTranslation(p.x, p.y + 0.05, p.z));
+        });
+        for (const im of [amb, pal]) { im.castShadow = true; im.receiveShadow = true; scene.add(im); }
+      }
+
+      function exitPath(slot) {
+        const p = slot.p;
+        if (slot.kind === 'rack') return [p.clone(), V(p.x, p.y, 1.3), V(p.x, CARRY, LANE_Z)];
+        if (slot.kind === 'tin') return [p.clone(), V(-10.35, BED_Y, p.z), V(-9.25, CARRY, LANE_Z)];
+        return [p.clone(), V(10.35, BED_Y, p.z), V(9.25, CARRY, LANE_Z)];
+      }
+      function route(a, b) {
+        const pts = [...exitPath(a), ...exitPath(b).reverse()];
+        const lens = [0];
+        for (let i = 1; i < pts.length; i++) lens.push(lens[i - 1] + pts[i].distanceTo(pts[i - 1]));
+        return { pts, lens, total: lens[lens.length - 1] || 1 };
+      }
+      function along(r, u, out) {
+        const dist = u * r.total;
+        let i = 1;
+        while (i < r.lens.length - 1 && r.lens[i] < dist) i++;
+        const seg = r.lens[i] - r.lens[i - 1];
+        const k = seg > 1e-6 ? (dist - r.lens[i - 1]) / seg : 1;
+        return out.lerpVectors(r.pts[i - 1], r.pts[i], clamp(k));
+      }
+
+      /* story legs per crate: [t0, t1, route] */
+      const legs = [];
+      for (let i = 0; i < 10; i++) {
+        const L = [];
+        L.push({ t0: 0.03 + i * 0.05, t1: 0.47 + i * 0.05, r: route(TIN[i], S1[i]) });
+        if (i < 4) L.push({ t0: 1.03 + i * 0.08, t1: 1.53 + i * 0.08, r: route(S1[i], PR[i]) });
+        if (i < 2) L.push({ t0: 2.03 + i * 0.1, t1: 2.55 + i * 0.1, r: route(PR[i], TOUT[i]) });
+        legs.push(L);
+      }
+
+      /* ---------------- story crates ---------------- */
+      const crateTex = crateTexture('STL-10');
+      const crateGeo = new THREE.BoxGeometry(0.64, 0.5, 0.64);
+      const crateEdges = new THREE.EdgesGeometry(crateGeo);
+      const palletGeo = new THREE.BoxGeometry(0.72, 0.1, 0.72);
+      const RED = new THREE.Color(0xff5a47);
+      const crates = [];
+      for (let i = 0; i < 10; i++) {
+        const g = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ map: crateTex, roughness: 0.75, metalness: 0 });
+        const body = new THREE.Mesh(crateGeo, mat);
+        body.position.y = 0.35; body.castShadow = true; body.receiveShadow = true;
+        const edges = new THREE.LineSegments(crateEdges, M.edge);
+        edges.position.y = 0.35;
+        const pallet = new THREE.Mesh(palletGeo, M.pallet);
+        pallet.position.y = 0.05; pallet.castShadow = true; pallet.receiveShadow = true;
+        g.add(pallet, body, edges);
+        scene.add(g);
+        const agv = new THREE.Group();
+        agv.add(box(0.8, 0.12, 0.8, M.agv, 0, 0.07, 0));
+        const led = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.03, 0.03), M.led);
+        led.position.set(0, 0.1, 0.41);
+        agv.add(led);
+        agv.visible = false;
+        scene.add(agv);
+        crates.push({ g, body, edges, mat, agv, baseColor: new THREE.Color(0xffffff) });
+      }
+      const chunk = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.2, 0.26), new THREE.MeshStandardMaterial({ map: crateTex, roughness: 0.8 }));
+      chunk.castShadow = true;
+      scene.add(chunk);
+
+      // dust in the light
+      const DUST = 260;
+      const dustPos = new Float32Array(DUST * 3);
+      const dustSeed = new Float32Array(DUST);
+      for (let i = 0; i < DUST; i++) {
+        dustPos[i * 3] = (Math.random() - 0.5) * 30;
+        dustPos[i * 3 + 1] = Math.random() * 6;
+        dustPos[i * 3 + 2] = -4 + Math.random() * 10;
+        dustSeed[i] = Math.random() * 10;
+      }
+      const dustGeo = new THREE.BufferGeometry();
+      dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+      scene.add(new THREE.Points(dustGeo, M.dust));
+
+      /* ---------------- theme ---------------- */
+      function applyPalette(name) {
+        const p = PAL[name] || PAL.dark;
+        scene.fog.color.setHex(p.bg);
+        if (M.floor.map) M.floor.map.dispose();
+        M.floor.map = floorTexture(p); M.floor.needsUpdate = true;
+        if (M.wall.map) M.wall.map.dispose();
+        M.wall.map = wallTexture(p); M.wall.needsUpdate = true;
+        M.steel.color.setHex(p.steel);
+        M.beam.color.setHex(p.beam); M.beam.emissive.setHex(p.beam);
+        M.deck.color.setHex(p.deck);
+        M.pallet.color.setHex(p.pallet);
+        M.truck.color.setHex(p.truck);
+        M.tire.color.setHex(p.tire);
+        M.cab.color.setHex(p.cab);
+        M.glass.color.setHex(p.glass);
+        M.agv.color.setHex(p.agv);
+        M.ambient.color.setHex(p.ambient);
+        M.lane.color.setHex(p.lane);
+        M.edge.color.setHex(p.edge); M.edge.opacity = p.edgeOp;
+        M.dust.color.setHex(p.dust); M.dust.opacity = p.dustOp;
+        crates.forEach((c) => c.baseColor.setHex(p.crate));
+        chunk.material.color.setHex(p.crate);
+        hemi.color.setHex(p.hemiSky); hemi.groundColor.setHex(p.hemiGround); hemi.intensity = p.hemi;
+        key.intensity = p.key;
+        scene.environmentIntensity = p.env;
+        hazardMats.forEach((m) => (m.opacity = name === 'dark' ? 0.55 : 0.85));
+      }
+      applyPalette(window.__ssTheme ? window.__ssTheme() : 'dark');
+      window.addEventListener('ss:theme', (e) => applyPalette(e.detail));
+      // the wall stencil uses the display font; repaint once fonts are in
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => applyPalette(window.__ssTheme ? window.__ssTheme() : 'dark'));
+
+      /* ---------------- HTML labels pinned to 3D points ---------------- */
+      const zones = [
+        { at: V(TRUCK_IN_X + 0.6, 3.1, LANE_Z), code: 'Vendor', name: 'Inbound dock', steps: [0] },
+        { at: V(RACK_A.x, 3.75, RACK_A.z), code: 'WH/Stock1', name: 'Main store', steps: [0, 1] },
+        { at: V(RACK_B.x, 3.75, RACK_B.z), code: 'WH/Production', name: 'Production rack', steps: [1, 2, 3] },
+        { at: V(TRUCK_OUT_X - 0.6, 3.1, LANE_Z), code: 'Customer', name: 'Outbound dock', steps: [2] },
+        { at: V(LOSS.x, 1.25, LOSS.z), code: 'Inventory loss', name: 'Virtual location', steps: [3] }
+      ];
+      zones.forEach((z) => {
+        const el = document.createElement('div');
+        el.className = 'ztag';
+        el.innerHTML = `<b>${z.code}</b><span>${z.name}</span>`;
+        labelsEl.appendChild(el);
+        z.el = el;
+      });
+      const OPS = [
+        { at: V(-7.2, 1.7, LANE_Z + 0.2), kind: 'in', icon: 'ph-arrow-down-left', ref: 'WH/IN/0001', what: 'Steel rods from vendor', qty: '+100 kg' },
+        { at: V(-0.5, 1.5, LANE_Z + 0.2), kind: 'int', icon: 'ph-arrows-left-right', ref: 'WH/INT/0001', what: 'Stock1 to Production', qty: '40 kg' },
+        { at: V(8.1, 1.9, LANE_Z + 0.2), kind: 'out', icon: 'ph-arrow-up-right', ref: 'WH/OUT/0001', what: 'Delivered to customer', qty: '−20 kg' },
+        { at: V(4.3, 1.75, 0.6), kind: 'out', icon: 'ph-scales', ref: 'WH/ADJ/0001', what: 'Damaged in handling', qty: '−3 kg' }
+      ];
+      const opEl = document.createElement('div');
+      opEl.className = 'optag';
+      labelsEl.appendChild(opEl);
+      let opShown = -1;
+
+      const proj = new THREE.Vector3();
+      function place(el, world, w, h, dy = 0) {
+        proj.copy(world).project(camera);
+        const x = (proj.x * 0.5 + 0.5) * w, y = (-proj.y * 0.5 + 0.5) * h + dy;
+        const off = proj.z > 1 || x < -200 || x > w + 200 || y < -100 || y > h + 100;
+        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -100%)`;
+        return !off;
+      }
+
+      /* ---------------- camera rig ---------------- */
+      const HERO = { pos: V(20, 15, 24), tgt: V(0.5, 0.2, 0) };
+      const HERO_M = { pos: V(10, 16, 21), tgt: V(-0.5, 0.4, 0.2) };
+      const heroShift = -0.1;
+      const FLOW = [
+        { pos: V(-13.5, 7.6, 12.8), tgt: V(-8.4, 0.9, 1.0) },
+        { pos: V(-9.2, 8.4, 13.4), tgt: V(-4.2, 1.1, 0.6) },
+        { pos: V(-3.4, 8.8, 14.2), tgt: V(-0.4, 1.1, 0.6) },
+        { pos: V(5.2, 8.0, 13.2), tgt: V(8.2, 0.9, 1.3) },
+        { pos: V(0.9, 5.2, 9.8), tgt: V(3.0, 0.8, 0.8) }
+      ];
+      const posCurve = new THREE.CatmullRomCurve3(FLOW.map((k) => k.pos), false, 'centripetal');
+      const tgtCurve = new THREE.CatmullRomCurve3(FLOW.map((k) => k.tgt), false, 'centripetal');
+      const camPos = V(0, 0, 0), camTgt = V(0, 0, 0);
+
+      /* ---------------- story pose: a pure function of t ---------------- */
+      const tmp = V(0, 0, 0);
+      const truckInOffset = (t) => -easeIO(clamp((t - 0.95) / 0.35)) * 12;
+      const truckOutOffset = (t) => easeIO(clamp((t - 2.72) / 0.38)) * 12;
+      const chunkFrom = V(PR[2].p.x, 0.62, PR[2].p.z + 0.1), chunkTo = V(LOSS.x, 0.16, LOSS.z);
+
+      function pose(t, time) {
+        const dIn = truckInOffset(t), dOut = truckOutOffset(t);
+        truckIn.g.position.x = truckIn.baseX + dIn;
+        truckOut.g.position.x = truckOut.baseX + dOut;
+        truckIn.wheels.forEach((w) => (w.rotation.y = dIn / 0.43));
+        truckOut.wheels.forEach((w) => (w.rotation.y = dOut / 0.43));
+
+        for (let i = 0; i < crates.length; i++) {
+          const c = crates[i], L = legs[i];
+          let placed = false, moving = false;
+          tmp.copy(TIN[i].p);
+          for (let k = 0; k < L.length; k++) {
+            const leg = L[k];
+            if (t < leg.t0) { if (k > 0) tmp.copy(L[k - 1].r.pts[L[k - 1].r.pts.length - 1]); placed = true; break; }
+            if (t <= leg.t1) { along(leg.r, easeIO((t - leg.t0) / (leg.t1 - leg.t0)), tmp); placed = true; moving = true; break; }
+          }
+          if (!placed) { const last = L[L.length - 1]; tmp.copy(last.r.pts[last.r.pts.length - 1]); }
+          if (!moving && i < 2 && t > L[L.length - 1].t1) tmp.x += dOut;
+          c.g.position.copy(tmp);
+          c.agv.visible = moving && tmp.y < CARRY + 0.02 && Math.abs(tmp.z - LANE_Z) < 0.05;
+          if (c.agv.visible) c.agv.position.set(tmp.x, 0, tmp.z);
+          c.g.rotation.y = moving ? Math.sin((t - L[0].t0) * 9) * 0.02 : 0;
+
+          // adjustment step: crate 2 at the production rack loses 3 kg
+          c.body.scale.y = 1; c.body.position.set(0, 0.35, 0);
+          let red = 0;
+          if (i === 2 && t > 3.02) {
+            const k = clamp((t - 3.02) / 0.28);
+            const settle = clamp((t - 3.3) / 0.5);
+            red = k * (1 - settle * 0.55);
+            const shake = (1 - settle) * k;
+            c.body.position.x = Math.sin(time * 60) * 0.03 * shake;
+            const s = lerp(1, 0.78, smooth(settle));
+            c.body.scale.y = s; c.body.position.y = 0.1 + 0.25 * s;
+          }
+          c.edges.scale.y = c.body.scale.y; c.edges.position.copy(c.body.position);
+          c.mat.color.copy(c.baseColor).lerp(RED, red * 0.8);
+        }
+
+        const ch = clamp((t - 3.2) / 0.42);
+        chunk.visible = t > 3.18;
+        if (chunk.visible) {
+          const e = smooth(ch);
+          chunk.position.set(lerp(chunkFrom.x, chunkTo.x, e), lerp(chunkFrom.y, chunkTo.y, e) + Math.sin(e * Math.PI) * 1.3, lerp(chunkFrom.z, chunkTo.z, e));
+          chunk.rotation.set(e * 4.2, e * 2.3, 0);
+          chunk.material.color.copy(crates[0].baseColor).lerp(RED, 0.65);
+        }
+      }
+
+      /* ---------------- loop ---------------- */
+      let W = 1, H = 1;
+      function resize() {
+        W = canvas.clientWidth || innerWidth; H = canvas.clientHeight || innerHeight;
+        renderer.setSize(W, H, false);
+        camera.aspect = W / H;
+      }
+      new ResizeObserver(resize).observe(canvas);
+      resize();
+
+      const pointer = { x: 0, y: 0, sx: 0, sy: 0 };
+      addEventListener('pointermove', (e) => {
+        pointer.x = (e.clientX / innerWidth) * 2 - 1;
+        pointer.y = (e.clientY / innerHeight) * 2 - 1;
+      }, { passive: true });
+
+      const HERO_CYCLE = 13.5;
+      // ?t=1.5 freezes the hero story at a moment (handy for screenshots)
+      const frozenT = Q.has('t') ? clamp(Number(Q.get('t')) || 0, 0, 4) : null;
+      let heroClock = 0, tShown = reduceMQ.matches ? 1 : 0, last = performance.now(), raf = 0, prevCycle = 0;
+      let fadeShown = 1, clockTime = 0;
+      const exposed = { hero: true, flow: false };
+
+      function frame(now) {
+        // wall-clock time so slow devices keep the real pace instead of slow motion
+        const dt = Math.min(0.25, (now - last) / 1000);
+        last = now; clockTime += dt;
+        const reduce = reduceMQ.matches, narrow = narrowMQ.matches;
+
+        const fr = flowEl.getBoundingClientRect();
+        const flowW = smooth(clamp(1 - fr.top / (innerHeight * 0.9)));
+        const tFlow = window.__ssFlowT || 0;
+
+        let tTarget, fade = 1, snap = false;
+        if (flowW > 0.35) {
+          tTarget = tFlow;
+        } else if (frozenT !== null) {
+          tTarget = frozenT; snap = true;
+        } else if (reduce) {
+          tTarget = 1.0;
+        } else {
+          heroClock += dt;
+          const cyc = heroClock % HERO_CYCLE;
+          if (cyc < prevCycle) snap = true;
+          prevCycle = cyc;
+          tTarget = Math.min(4, Math.max(0, (cyc - 0.4) * 0.44));
+          fade = cyc < 0.5 ? cyc / 0.5 : cyc > 12.6 ? clamp(1 - (cyc - 12.6) / 0.7) : 1;
+        }
+        const k = 1 - Math.exp(-Math.min(dt, 0.05) * 7);
+        if (snap || reduce) tShown = tTarget;
+        else tShown += (tTarget - tShown) * k;
+        fadeShown += (fade - fadeShown) * (reduce ? 1 : 1 - Math.exp(-Math.min(dt, 0.05) * 12));
+        canvas.style.opacity = labelsEl.style.opacity = fadeShown.toFixed(3);
+
+        pose(tShown, clockTime);
+
+        const hero = narrow ? HERO_M : HERO;
+        const u = clamp(tShown / 4);
+        const fp = posCurve.getPoint(u), ft = tgtCurve.getPoint(u);
+        if (narrow) fp.sub(ft).multiplyScalar(1.5).add(ft);
+        camPos.lerpVectors(hero.pos, fp, flowW);
+        camTgt.lerpVectors(hero.tgt, ft, flowW);
+        if (!reduce) {
+          pointer.sx += (pointer.x - pointer.sx) * (1 - Math.exp(-Math.min(dt, 0.05) * 3));
+          pointer.sy += (pointer.y - pointer.sy) * (1 - Math.exp(-Math.min(dt, 0.05) * 3));
+          camPos.x += pointer.sx * 0.9; camPos.y -= pointer.sy * 0.45;
+        }
+        camera.position.copy(camPos);
+        camera.lookAt(camTgt);
+
+        const heroOff = narrow ? { x: 0, y: -H * 0.27 } : { x: W * heroShift, y: -H * 0.05 };
+        const flowOff = narrow ? { x: 0, y: H * 0.22 } : { x: -W * 0.19, y: 0 };
+        camera.setViewOffset(W, H, lerp(heroOff.x, flowOff.x, flowW), lerp(heroOff.y, flowOff.y, flowW), W, H);
+        camera.updateProjectionMatrix();
+
+        if (!reduce) {
+          const a = dustGeo.attributes.position.array;
+          for (let i = 0; i < DUST; i++) {
+            a[i * 3 + 1] += dt * 0.08;
+            a[i * 3] += Math.sin(clockTime * 0.3 + dustSeed[i]) * dt * 0.05;
+            if (a[i * 3 + 1] > 6) a[i * 3 + 1] = 0;
+          }
+          dustGeo.attributes.position.needsUpdate = true;
+        }
+
+        renderer.render(scene, camera);
+
+        const step = Math.min(3, Math.floor(tShown));
+        // in the hero, labels that would land behind the headline stay hidden
+        const copyEdge = narrow ? -1 : W * 0.46;
+        zones.forEach((z) => {
+          const vis = place(z.el, z.at, W, H);
+          const behindCopy = flowW < 0.5 && proj.x * 0.5 + 0.5 < copyEdge / W;
+          const relevant = flowW < 0.5 || z.steps.includes(step);
+          z.el.style.opacity = vis && !behindCopy ? (relevant ? 1 : 0.28) : 0;
+        });
+        const showOp = tShown - step > 0.08 && tShown > 0.05;
+        if (step !== opShown) {
+          const o = OPS[step];
+          opEl.dataset.kind = o.kind;
+          opEl.innerHTML = `<i class="ph ${o.icon}"></i><span><span class="ref">${o.ref}</span><span class="what">${o.what}</span></span><span class="qty">${o.qty}</span>`;
+          opShown = step;
+        }
+        const bob = reduce ? 0 : Math.sin(clockTime * 2.2) * 4;
+        const opVis = place(opEl, OPS[step].at, W, H, bob);
+        opEl.style.opacity = showOp && opVis ? 1 : 0;
+
+        raf = requestAnimationFrame(frame);
+      }
+
+      function sync() {
+        const on = (exposed.hero || exposed.flow) && !document.hidden;
+        canvas.style.visibility = labelsEl.style.visibility = on ? 'visible' : 'hidden';
+        if (on && !raf) { last = performance.now(); raf = requestAnimationFrame(frame); }
+        if (!on && raf) { cancelAnimationFrame(raf); raf = 0; }
+      }
+      const io = new IntersectionObserver((es) => {
+        es.forEach((e) => { exposed[e.target === heroEl ? 'hero' : 'flow'] = e.isIntersecting; });
+        sync();
+      });
+      io.observe(heroEl); io.observe(flowEl);
+      document.addEventListener('visibilitychange', sync);
+      sync();
+    }
+  </script>
+</body>
+</html>
