@@ -91,6 +91,9 @@ async function deliverVia(provider: Exclude<MailProvider, 'log'>, mail: Mail): P
   }
 }
 
+// Subjects carry one-time codes; keep them out of the logs.
+const logSubject = (subject: string) => subject.replace(/\d{4,}/g, '######');
+
 /** Every configured provider, in order of preference. */
 const providers = (): Exclude<MailProvider, 'log'>[] => [
   ...(config.mail.resendKey ? (['resend'] as const) : []),
@@ -111,11 +114,11 @@ async function deliver(mail: Mail): Promise<void> {
   for (const provider of list) {
     try {
       await deliverVia(provider, mail);
-      logger.info({ provider, subject: mail.subject }, 'email sent');
+      logger.info({ provider, subject: logSubject(mail.subject) }, 'email sent');
       return;
     } catch (err) {
       lastError = err;
-      logger.warn({ err, provider, subject: mail.subject }, `email provider ${provider} failed, trying the next one`);
+      logger.warn({ err, provider, subject: logSubject(mail.subject) }, `email provider ${provider} failed, trying the next one`);
     }
   }
   throw lastError;
@@ -127,7 +130,7 @@ export async function sendMail(mail: Mail): Promise<boolean> {
     await deliver(mail);
     return true;
   } catch (err) {
-    logger.error({ err, to: mail.to, subject: mail.subject }, 'email delivery failed');
+    logger.error({ err, subject: logSubject(mail.subject) }, 'email delivery failed');
     return false;
   }
 }
