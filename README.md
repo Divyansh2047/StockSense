@@ -79,14 +79,7 @@ Open <http://localhost:5173> for the landing page and <http://localhost:5173/app
 
 ### Demo
 
-The fastest way in: **Try a live demo workspace** on the sign-in page. Or use the seeded sample company:
-
-| Login ID | Password | Role |
-|---|---|---|
-| `manager` | `Stock@2026!` | Inventory manager |
-| `picker01` | `Stock@2026!` | Warehouse staff |
-
-The demo data is set up to show the interesting cases: a late receipt, a delivery **waiting** for 55 chairs with 40 on hand (validate today's chair receipt and watch it turn ready), a low-stock and an out-of-stock product. In development the verification and reset screens show the code on screen; production only emails it.
+The fastest way in: **Try a live demo workspace** on the sign-in page at https://stocksense.scriptjacker.in/app/login
 
 ---
 
