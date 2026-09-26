@@ -1,0 +1,119 @@
+/* StockSense design tokens. Shared language with the landing page:
+   safety amber as the single accent, green for stock in, red for stock out. */
+
+:root {
+  --bg: #eef0f1;
+  --bg-2: #e5e8ea;
+  --bg-3: #dcdfe2;
+  --surface: #f8f9f9;
+  --surface-2: #ffffff;
+  --ink: #101315;
+  --ink-2: #353b41;
+  --muted: #5b636a;
+  --faint: #8b9298;
+  --line: #d3d8dc;
+  --line-2: #b8bfc5;
+  --accent: #ffb224;
+  --accent-hover: #ffbe45;
+  --accent-ink: #875800;
+  --accent-soft: rgb(255 178 36 / 0.18);
+  --on-accent: #17130a;
+  /* text-safe steps (>= 4.5:1 on surfaces) */
+  --in: #087a6c;
+  --out: #c23a25;
+  --in-bg: rgb(10 138 122 / 0.12);
+  --out-bg: rgb(216 69 47 / 0.1);
+  /* chart marks: validated for colour-vision deficiency (deutan/protan dE >= 10) */
+  --chart-in: #0a8a7a;
+  --chart-out: #d8452f;
+  --focus: #e39400;
+  --overlay: rgb(16 19 21 / 0.42);
+  --shadow-sm: 0 1px 0 rgb(16 19 21 / 0.04), 0 2px 6px -2px rgb(28 36 44 / 0.12);
+  --shadow-md: 0 1px 0 rgb(16 19 21 / 0.04), 0 14px 30px -18px rgb(28 36 44 / 0.35);
+  --shadow-lg: 0 1px 0 rgb(16 19 21 / 0.04), 0 30px 60px -30px rgb(28 36 44 / 0.4);
+
+  --radius: 4px;
+  --radius-sm: 3px;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --font-display: 'Big Shoulders Display', 'Archivo Narrow', 'Arial Narrow', sans-serif;
+  --font-body: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  --sidebar-w: 256px;
+  --topbar-h: 60px;
+
+  /* z-index scale */
+  --z-sticky: 5;
+  --z-sidebar: 20;
+  --z-topbar: 30;
+  --z-popover: 60;
+  --z-dialog: 80;
+  --z-toast: 100;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0c0e0f;
+  --bg-2: #111416;
+  --bg-3: #171b1e;
+  --surface: #15181a;
+  --surface-2: #1b1f22;
+  --ink: #eceeef;
+  --ink-2: #c5cacd;
+  --muted: #939aa1;
+  --faint: #6b7278;
+  --line: #252a2e;
+  --line-2: #353b40;
+  --accent: #ffb224;
+  --accent-hover: #ffc14f;
+  --accent-ink: #ffc65c;
+  --accent-soft: rgb(255 178 36 / 0.14);
+  --on-accent: #15120a;
+  --in: #16a88a;
+  --in-bg: rgb(22 168 138 / 0.14);
+  --out: #f0584a;
+  --out-bg: rgb(240 88 74 / 0.13);
+  --chart-in: #16a88a;
+  --chart-out: #f0584a;
+  --focus: #ffb224;
+  --overlay: rgb(0 0 0 / 0.6);
+  --shadow-sm: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 2px 8px -2px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 18px 40px -22px rgb(0 0 0 / 0.75);
+  --shadow-lg: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 40px 80px -40px rgb(0 0 0 / 0.85);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0c0e0f;
+    --bg-2: #111416;
+    --bg-3: #171b1e;
+    --surface: #15181a;
+    --surface-2: #1b1f22;
+    --ink: #eceeef;
+    --ink-2: #c5cacd;
+    --muted: #939aa1;
+    --faint: #6b7278;
+    --line: #252a2e;
+    --line-2: #353b40;
+    --accent: #ffb224;
+    --accent-hover: #ffc14f;
+    --accent-ink: #ffc65c;
+    --accent-soft: rgb(255 178 36 / 0.14);
+    --on-accent: #15120a;
+    --in: #16a88a;
+    --in-bg: rgb(22 168 138 / 0.14);
+    --out: #f0584a;
+    --out-bg: rgb(240 88 74 / 0.13);
+    --chart-in: #16a88a;
+    --chart-out: #f0584a;
+    --focus: #ffb224;
+    --overlay: rgb(0 0 0 / 0.6);
+    --shadow-sm: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 2px 8px -2px rgb(0 0 0 / 0.5);
+    --shadow-md: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 18px 40px -22px rgb(0 0 0 / 0.75);
+    --shadow-lg: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 40px 80px -40px rgb(0 0 0 / 0.85);
+    color-scheme: dark;
+  }
+}
