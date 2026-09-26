@@ -263,6 +263,10 @@ The integration suite runs the brief's worked example end to end (receive 100 kg
 
 Barcode and QR scanning on the phone layout, purchase orders feeding receipts, lot and serial tracking, multi-step delivery (pick / pack / ship as separate documents), valuation methods (FIFO, average cost), CSV import and export, audit log of settings changes, and demand forecasting from the ledger.
 
+## How we built it
+
+StockSense was built by Divyansh Singh and Parth Narula with the help of an AI coding assistant. The team set the product direction and requirements, made the architecture and hosting decisions, set up the infrastructure (Render, Hostinger DNS and mail, Resend), and tested every flow on the live site; much of the code was generated with the assistant under our direction.
+
 ## Mockup and problem statement
 
 Designed from the StockSense problem statement and its Excalidraw mockup: <https://link.excalidraw.com/l/65VNwvy7c4X/3ENvQFu9o8R>
@@ -270,6 +274,7 @@ Designed from the StockSense problem statement and its Excalidraw mockup: <https
 ## Author
 
 **Divyansh Singh** · [github.com/divyansh2047](https://github.com/divyansh2047) · [linkedin.com/in/divyansh2047](https://linkedin.com/in/divyansh2047)
+**Parth Narula** [github.com/scriptjacker](https://github.com/scriptjacker) [linkedin.com/in/divyansh2047](https://linkedin.com/in/parth-narula-86283821a)
 
 ## License
 
