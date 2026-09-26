@@ -1,0 +1,7 @@
+Options -Indexes
+<Files "*">
+  Require all denied
+</Files>
+<Files "send.php">
+  Require all granted
+</Files>

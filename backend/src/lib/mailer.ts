@@ -6,8 +6,10 @@ import { logger } from './logger.js';
  * Outgoing email. Every configured provider is tried in this order until one accepts:
  *   RESEND_API_KEY  - Resend over HTTPS
  *   BREVO_API_KEY   - Brevo over HTTPS
- *   SMTP_HOST       - any SMTP server (Hostinger, Gmail app password, ...)
- * HTTPS APIs matter because some hosts (Render's free tier, for one) block SMTP ports.
+ *   SMTP_HOST       - any SMTP server (Hostinger, Gmail app password, ...), either
+ *                     directly or, with MAIL_BRIDGE_URL, through deploy/mail-bridge
+ *                     (an HTTPS endpoint on web hosting that speaks SMTP for us)
+ * HTTPS matters because some hosts (Render's free tier, for one) block SMTP ports.
  * With nothing configured the message is written to the server log instead.
  */
 interface Mail {
@@ -18,18 +20,23 @@ interface Mail {
 }
 
 let smtp: Transporter | null = null;
-if (config.smtp.host) {
+if (config.smtp.host && !config.mail.bridgeUrl) {
   smtp = nodemailer.createTransport({
     host: config.smtp.host,
     port: config.smtp.port,
     secure: config.smtp.port === 465,
     auth: config.smtp.user ? { user: config.smtp.user, pass: config.smtp.pass } : undefined,
+    // fail fast where the port is blocked, so the request does not hang
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   });
 }
+const bridgeReady = () => Boolean(config.mail.bridgeUrl && config.smtp.host && config.smtp.user && config.smtp.pass);
 
-export type MailProvider = 'resend' | 'brevo' | 'smtp' | 'log';
+export type MailProvider = 'resend' | 'brevo' | 'bridge' | 'smtp' | 'log';
 export const mailProvider = (): MailProvider =>
-  config.mail.resendKey ? 'resend' : config.mail.brevoKey ? 'brevo' : smtp ? 'smtp' : 'log';
+  config.mail.resendKey ? 'resend' : config.mail.brevoKey ? 'brevo' : bridgeReady() ? 'bridge' : smtp ? 'smtp' : 'log';
 export const mailEnabled = () => mailProvider() !== 'log';
 
 /** "StockSense <no-reply@x.y>" -> { name, email } */
@@ -66,6 +73,18 @@ async function deliverVia(provider: Exclude<MailProvider, 'log'>, mail: Mail): P
         { 'api-key': config.mail.brevoKey },
         { sender: from, to: [{ email: mail.to }], subject: mail.subject, htmlContent: mail.html, textContent: mail.text },
       );
+    case 'bridge':
+      return postJson(config.mail.bridgeUrl, {}, {
+        host: config.smtp.host,
+        user: config.smtp.user,
+        pass: config.smtp.pass,
+        from: from.email,
+        fromName: from.name,
+        to: mail.to,
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
+      });
     case 'smtp':
       await smtp!.sendMail({ from: config.mail.from, to: mail.to, subject: mail.subject, text: mail.text, html: mail.html });
       return;
@@ -76,6 +95,7 @@ async function deliverVia(provider: Exclude<MailProvider, 'log'>, mail: Mail): P
 const providers = (): Exclude<MailProvider, 'log'>[] => [
   ...(config.mail.resendKey ? (['resend'] as const) : []),
   ...(config.mail.brevoKey ? (['brevo'] as const) : []),
+  ...(bridgeReady() ? (['bridge'] as const) : []),
   ...(smtp ? (['smtp'] as const) : []),
 ];
 
@@ -91,6 +111,7 @@ async function deliver(mail: Mail): Promise<void> {
   for (const provider of list) {
     try {
       await deliverVia(provider, mail);
+      logger.info({ provider, subject: mail.subject }, 'email sent');
       return;
     } catch (err) {
       lastError = err;

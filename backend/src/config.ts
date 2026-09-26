@@ -33,6 +33,8 @@ const schema = z.object({
   RESEND_API_KEY: z.string().default(''),
   BREVO_API_KEY: z.string().default(''),
   MAIL_FROM: z.string().default(''),
+  // HTTPS endpoint that relays SMTP (deploy/mail-bridge), for hosts that block SMTP ports.
+  MAIL_BRIDGE_URL: z.string().url().or(z.literal('')).default(''),
   // Public address of the app, used for links in emails.
   APP_URL: z.string().default(''),
   OTP_DEV_ECHO: bool,
@@ -86,6 +88,7 @@ export const config = {
   mail: {
     resendKey: env.RESEND_API_KEY,
     brevoKey: env.BREVO_API_KEY,
+    bridgeUrl: env.MAIL_BRIDGE_URL,
     from: env.MAIL_FROM || env.SMTP_FROM || 'StockSense <no-reply@stocksense.local>',
   },
   appUrl: (env.APP_URL || `http://localhost:${env.NODE_ENV === 'production' ? env.PORT : 5173}`).replace(/\/+$/, ''),
