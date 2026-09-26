@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider, useLocation, useRouteError, isRouteErrorResponse, Link } from 'react-router';
-import { ForgotPage, LoginPage, SignupPage } from './auth/pages';
+import { ForgotPage, LoginPage, ResetLinkPage, SignupPage, VerifyPage } from './auth/pages';
 import { Logo } from './components/ui';
 import { AppShell } from './layout/AppShell';
 import { LiveProvider } from './lib/live';
@@ -76,6 +76,9 @@ const router = createBrowserRouter(
     { path: '/login', element: <GuestOnly><LoginPage /></GuestOnly> },
     { path: '/signup', element: <GuestOnly><SignupPage /></GuestOnly> },
     { path: '/forgot-password', element: <GuestOnly><ForgotPage /></GuestOnly> },
+    // reachable signed in or out: links from emails land here
+    { path: '/verify', element: <VerifyPage /> },
+    { path: '/reset', element: <ResetLinkPage /> },
     {
       path: '/print/:id',
       element: <RequireAuth>{page(<OperationPrint />)}</RequireAuth>,

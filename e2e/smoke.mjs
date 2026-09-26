@@ -25,6 +25,7 @@ async function newPage(ctx) {
 const c0 = await browser.newContext({ viewport: { width: 1280, height: 860 } });
 const s = await newPage(c0);
 await s.goto(BASE + '/app/signup');
+await s.fill('#su-company', 'QA Traders');
 await s.fill('#su-login', 'abc');
 await s.fill('#su-email', 'not-email');
 await s.fill('#su-pass', 'weakpass');
@@ -42,9 +43,30 @@ const dupe = await s.locator('.field .error').allTextContents();
 check('duplicate login id rejected by server', dupe.some((t) => /taken/i.test(t)), dupe.join(' | '));
 await s.fill('#su-login', 'qa_tester');
 await s.click('button[type=submit]');
+await s.waitForURL(/\/app\/verify/, { timeout: 10000 }).catch(() => {});
+check('sign-up asks to confirm the email', /\/app\/verify/.test(s.url()), s.url());
+const signupCode = (await s.locator('.note-box .mono').textContent()).trim();
+await s.locator('.otp__cell').first().click();
+await s.keyboard.type(signupCode);
+await s.click('button[type=submit]');
 await s.waitForURL(/\/app\/?$/, { timeout: 10000 }).catch(() => {});
-check('new account lands on dashboard', /\/app\/?$/.test(s.url()), s.url());
+check('confirmed account lands on its own empty workspace', /\/app\/?$/.test(s.url()), s.url());
+await s.waitForSelector('.workspace');
+check('workspace badge shows the company', (await s.locator('.workspace').first().textContent()).includes('QA Traders'));
+await s.goto(BASE + '/app/products');
+await s.waitForTimeout(800);
+check('a new company sees none of the demo catalog', !(await s.locator('text=STL010').count()));
 await c0.close();
+
+// ---------- one-click demo sandbox
+const cd = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+const d = await newPage(cd);
+await d.goto(BASE + '/app/login');
+await d.getByRole('button', { name: /live demo/i }).click();
+await d.waitForURL(/\/app\/?$/, { timeout: 15000 }).catch(() => {});
+await d.waitForSelector('.demo-ribbon', { timeout: 10000 }).catch(() => {});
+check('demo button opens a private sample workspace', await d.locator('.demo-ribbon').isVisible(), d.url());
+await cd.close();
 
 // ---------- OTP reset through the UI
 const c1 = await browser.newContext({ viewport: { width: 1280, height: 860 } });

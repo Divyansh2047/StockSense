@@ -1128,3 +1128,8 @@ tr.is-canceled td {
     margin: 16mm;
   }
 }
+.team__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

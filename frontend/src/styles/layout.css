@@ -565,3 +565,49 @@ kbd {
     transform: translateY(-18px);
   }
 }
+
+/* ------------------------------------------------------------------ workspace badge and demo ribbon */
+.workspace {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 12px 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 13px;
+  min-width: 0;
+}
+.workspace b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace__dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.demo-ribbon {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 9px 16px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13.5px;
+}
+.demo-ribbon b {
+  color: var(--accent);
+}
+.demo-ribbon a {
+  margin-left: auto;
+  color: var(--bg);
+  font-weight: 600;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}

@@ -10,6 +10,25 @@ export interface User {
   name: string;
   role: Role;
   createdAt: string;
+  emailVerified: boolean;
+  company: { id: number; name: string; sandbox: boolean };
+}
+
+export interface TeamMember {
+  id: number;
+  loginId: string;
+  name: string;
+  email: string;
+  role: Role;
+  createdAt: string;
+  emailVerified: boolean;
+}
+
+export interface Verification {
+  email: string;
+  masked: string;
+  resendIn: number;
+  sent: boolean;
 }
 
 export interface Warehouse {
@@ -197,13 +216,4 @@ export interface Dashboard {
     fromName: string;
     toName: string;
   }[];
-}
-
-export interface TeamMember {
-  id: number;
-  loginId: string;
-  name: string;
-  email: string;
-  role: Role;
-  createdAt: string;
 }

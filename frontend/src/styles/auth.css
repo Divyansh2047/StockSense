@@ -286,3 +286,72 @@
     max-width: none;
   }
 }
+
+/* ------------------------------------------------------------------ sign-up pair, demo, verify */
+.auth__pair {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 460px) {
+  .auth__pair {
+    grid-template-columns: 1fr;
+  }
+}
+.demo-cta {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+.demo-cta__or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+.demo-cta__or::before,
+.demo-cta__or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.demo-cta .btn svg {
+  color: var(--accent);
+}
+.demo-cta__note {
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: center;
+  text-wrap: balance;
+}
+.verify-hero {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 20px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  animation: verify-bob 3.2s ease-in-out infinite;
+}
+.verify-hero[aria-busy='true'] {
+  margin: 8px 0;
+}
+@keyframes verify-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(3deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .verify-hero {
+    animation: none;
+  }
+}

@@ -23,7 +23,7 @@ import {
   X,
 } from '@phosphor-icons/react';
 import { AnimatePresence, m, useReducedMotion } from 'motion/react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { post } from '../lib/api';
 import { initials } from '../lib/format';
@@ -235,6 +235,7 @@ export function AppShell() {
 
       <aside className="sidebar">
         <NavLinkBrand />
+        <WorkspaceBadge />
         <SidebarNav />
         <div className="sidebar__foot">
           <ProfileMenu placement="above" />
@@ -259,6 +260,7 @@ export function AppShell() {
                   <X size={18} />
                 </button>
               </div>
+              <WorkspaceBadge />
               <SidebarNav onNavigate={() => setDrawer(false)} />
               <div className="sidebar__foot">
                 <ProfileMenu placement="above" />
@@ -269,6 +271,7 @@ export function AppShell() {
       </AnimatePresence>
 
       <div className="main">
+        <DemoRibbon />
         <header className="topbar">
           <button type="button" className="btn btn--quiet btn--icon topbar__menu" onClick={() => setDrawer(true)} aria-label="Open menu">
             <List size={20} />
@@ -336,5 +339,39 @@ function NavLinkBrand() {
       <Logo size={26} />
       <span>StockSense</span>
     </NavLink>
+  );
+}
+
+function WorkspaceBadge() {
+  const { data: me } = useMe();
+  if (!me) return null;
+  return (
+    <div className="workspace" title="Your company workspace">
+      <span className="workspace__dot" aria-hidden="true" />
+      <b>{me.company.name}</b>
+    </div>
+  );
+}
+
+function DemoRibbon() {
+  const { data: me } = useMe();
+  const navigate = useNavigate();
+  if (!me?.company.sandbox) return null;
+  const leave = async (e: MouseEvent) => {
+    e.preventDefault();
+    await post('/auth/logout').catch(() => undefined);
+    queryClient.clear();
+    queryClient.setQueryData(['me'], null);
+    navigate('/signup');
+  };
+  return (
+    <div className="demo-ribbon" role="note">
+      <span>
+        <b>Demo workspace.</b> Everything here is yours to break; nobody else sees it. It is deleted after 24 hours.
+      </span>
+      <a href="/app/signup" onClick={leave}>
+        Create a real workspace
+      </a>
+    </div>
   );
 }

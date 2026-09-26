@@ -4,6 +4,8 @@ export class ApiError extends Error {
     public readonly code: string,
     message: string,
     public readonly fields: Record<string, string> = {},
+    /** the full error object, for errors that carry extra data */
+    public readonly data: Record<string, unknown> = {},
   ) {
     super(message);
   }
@@ -36,7 +38,7 @@ export async function api<T>(
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const e = (data as { error?: { code?: string; message?: string; fields?: Record<string, string> } }).error ?? {};
-    throw new ApiError(res.status, e.code ?? 'error', e.message ?? `Request failed (${res.status})`, e.fields ?? {});
+    throw new ApiError(res.status, e.code ?? 'error', e.message ?? `Request failed (${res.status})`, e.fields ?? {}, e as Record<string, unknown>);
   }
   return data as T;
 }

@@ -15,7 +15,7 @@ export default function Profile() {
   const { data: me } = useMe();
   const toast = useToast();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '' });
+  const [form, setForm] = useState({ name: '', email: '', companyName: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [pw, setPw] = useState({ currentPassword: '', password: '', confirmPassword: '' });
@@ -23,7 +23,7 @@ export default function Profile() {
   const [pwBusy, setPwBusy] = useState(false);
 
   useEffect(() => {
-    if (me) setForm({ name: me.name, email: me.email });
+    if (me) setForm({ name: me.name, email: me.email, companyName: me.company.name });
   }, [me]);
   if (!me) return null;
 
@@ -32,10 +32,16 @@ export default function Profile() {
     setBusy(true);
     setErrors({});
     try {
-      const res = await patch<{ user: User }>('/auth/me', form);
+      const body: Record<string, string> = { name: form.name, email: form.email };
+      if (me.role === 'manager' && form.companyName !== me.company.name) body.companyName = form.companyName;
+      const emailChanged = form.email.trim().toLowerCase() !== me.email.toLowerCase();
+      const res = await patch<{ user: User; devCode?: string }>('/auth/me', body);
       queryClient.setQueryData(['me'], res.user);
       await queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('Profile saved');
+      if (emailChanged) {
+        toast.success('Profile saved', 'We sent a code to your new email. Confirm it before you next sign in.');
+        navigate('/verify', { state: { email: res.user.email, masked: res.user.email, resendIn: 60, devCode: res.devCode } });
+      } else toast.success('Profile saved');
     } catch (err) {
       setErrors(fieldErrors(err));
       toast.error('Could not save', errorMessage(err));
@@ -71,7 +77,7 @@ export default function Profile() {
     navigate('/login', { replace: true });
   };
 
-  const dirty = form.name !== me.name || form.email !== me.email;
+  const dirty = form.name !== me.name || form.email !== me.email || form.companyName !== me.company.name;
   return (
     <div style={{ maxWidth: 880 }}>
       <PageHeader
@@ -89,7 +95,7 @@ export default function Profile() {
         <div>
           <h2>{me.name}</h2>
           <p className="muted">
-            <span className="mono">{me.loginId}</span>. {me.role === 'manager' ? 'Inventory manager' : 'Warehouse staff'}. Member since {dateTime(me.createdAt)}.
+            <span className="mono">{me.loginId}</span>. {me.role === 'manager' ? 'Inventory manager' : 'Warehouse staff'} at {me.company.name}. Member since {dateTime(me.createdAt)}.
           </p>
         </div>
       </div>
@@ -103,8 +109,23 @@ export default function Profile() {
             <Field label="Name" htmlFor="pr-name" error={errors.name}>
               <input id="pr-name" className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </Field>
-            <Field label="Email" htmlFor="pr-email" error={errors.email} hint="Password reset codes go here.">
+            <Field
+              label="Email"
+              htmlFor="pr-email"
+              error={errors.email}
+              hint={me.emailVerified ? 'Confirmed. Reset codes and invitations use this address.' : 'Not confirmed yet. Check your inbox for the code.'}
+            >
               <input id="pr-email" type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            </Field>
+            <Field label="Company" htmlFor="pr-company" error={errors.companyName} hint={me.role === 'manager' ? 'Shown to your whole team.' : 'Only managers can rename the company.'}>
+              <input
+                id="pr-company"
+                className="input"
+                value={form.companyName}
+                maxLength={80}
+                disabled={me.role !== 'manager'}
+                onChange={(e) => setForm({ ...form, companyName: e.target.value })}
+              />
             </Field>
             <Field label="Login ID" htmlFor="pr-login" hint="Login IDs cannot be changed.">
               <input id="pr-login" className="input mono" value={me.loginId} disabled />
