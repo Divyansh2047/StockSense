@@ -144,6 +144,27 @@ authRouter.post('/logout', (_req, res) => {
 
 /* ------------------------------------------------------------------ profile */
 
+// Lets the app ask "am I signed in?" without logging a 401 on every cold start.
+authRouter.get(
+  '/session',
+  h(async (req, res) => {
+    const token = req.cookies?.ss_session as string | undefined;
+    if (!token) return void res.json({ user: null });
+    try {
+      const claims = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] }) as { sub: string; v: number; typ: string };
+      const user = claims.typ === 'session' ? await loadUser(Number(claims.sub)) : undefined;
+      if (!user || user.tokenVersion !== claims.v) {
+        clearSessionCookie(res);
+        return void res.json({ user: null });
+      }
+      res.json({ user: publicUser(user) });
+    } catch {
+      clearSessionCookie(res);
+      res.json({ user: null });
+    }
+  }),
+);
+
 authRouter.get(
   '/me',
   requireAuth,

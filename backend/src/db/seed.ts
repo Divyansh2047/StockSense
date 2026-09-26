@@ -166,6 +166,12 @@ export async function seed(pool: pg.Pool, opts: { force?: boolean } = {}): Promi
     await doc({ type: 'internal', src: S1, dst: PROD, lines: [['STL010', 200]], scheduled: -16, state: 'done', doneAt: [16, 9, 15], by: staffId });
     await doc({ type: 'internal', src: S2, dst: PROD, lines: [['PLY018', 30], ['GLU007', 8]], scheduled: -14, state: 'done', doneAt: [14, 10, 0], by: staffId });
 
+    // ---- replenishment during the fortnight
+    await doc({ type: 'receipt', partner: 'Lumen Office Works', dst: S1, lines: [['CHR004', 20], ['DESK001', 10]], scheduled: -12, state: 'done', doneAt: [12, 10, 40] });
+    await doc({ type: 'receipt', partner: 'Kalinga Steel Supply', dst: S1, lines: [['STL010', 150]], scheduled: -9, state: 'done', doneAt: [9, 11, 15], by: staffId });
+    await doc({ type: 'receipt', partner: 'Wood Corner', dst: S1, lines: [['BOX060', 120], ['HNG045', 200]], scheduled: -5, state: 'done', doneAt: [5, 9, 50], by: staffId });
+    await doc({ type: 'receipt', partner: 'Sahyadri Timber Co.', dst: S2, lines: [['PLY018', 40]], scheduled: -2, state: 'done', doneAt: [2, 14, 5] });
+
     // ---- deliveries through the fortnight
     const deliveries: [string, Line[], number, number][] = [
       ['Azure Interior', [['DESK001', 6], ['CHR004', 6]], 15, 14],
@@ -197,7 +203,7 @@ export async function seed(pool: pg.Pool, opts: { force?: boolean } = {}): Promi
     await doc({ type: 'receipt', partner: 'Wood Corner', dst: S2, lines: [['WRP002', 24], ['BOX060', 300]], scheduled: 5, state: 'confirm' });
 
     await doc({ type: 'delivery', partner: 'Azure Interior', src: S1, lines: [['DESK001', 5], ['TBL001', 4]], scheduled: 0, state: 'confirm', address: '14 Law Garden Rd, Ahmedabad' });
-    await doc({ type: 'delivery', partner: 'Deco Addict', src: S1, lines: [['CHR004', 40]], scheduled: 1, state: 'confirm', address: 'Lower Parel, Mumbai' });
+    await doc({ type: 'delivery', partner: 'Deco Addict', src: S1, lines: [['CHR004', 55]], scheduled: 1, state: 'confirm', address: 'Lower Parel, Mumbai' });
     await doc({ type: 'delivery', partner: 'Ready Mat', src: S1, lines: [['CAB210', 2]], scheduled: -1, state: 'confirm', address: 'Hinjawadi, Pune' });
     await doc({ type: 'delivery', partner: 'Gemini Furniture', src: S1, lines: [['TBL001', 6], ['BOX060', 40]], scheduled: 4, state: 'draft', address: 'Indiranagar, Bengaluru' });
 
