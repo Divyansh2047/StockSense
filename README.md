@@ -14,11 +14,17 @@ It is built on the inventory model Odoo uses (internal and virtual locations, st
 |---|---|
 | **Landing page** (`/`) | A scroll-driven Three.js warehouse that plays the brief's own example: receive 100 kg of steel, move 40 kg to the production rack, deliver 20 kg, write off 3 kg. A working in-page stock board, the four document types as shipping labels, a SKU finder. |
 | **Web app** (`/app`) | React SPA: dashboard, receipts, deliveries, transfers, adjustments, stock, products, move history, warehouses, locations, contacts, team, profile. Light and dark, phone to desktop, live across tabs and users. |
-| **API** (`/api`) | Express + PostgreSQL. Operations engine with reservations, per-warehouse references, OTP password reset, SSE live updates. |
+| **API** (`/api`) | Express + PostgreSQL. Multi-company workspaces isolated by row-level security, operations engine with reservations, per-warehouse references, email verification and password reset by code or link, SSE live updates. |
+
+### Beyond the brief
+
+- **Every sign-up is its own company.** A new account creates a private workspace and becomes its inventory manager; teammates join by email invitation (Team page) and set their own password from the link. Isolation is enforced by **PostgreSQL row-level security** on every table, plus composite foreign keys `(company_id, id)` so a guessed id from another company can never be referenced. The server refuses to start if the database user could bypass it.
+- **Email you can trust.** Sign-in is blocked until the email is confirmed with a 6-digit code *or* a one-time link (same email). Password reset works the same way. Codes and link tokens are stored only as HMACs, codes expire in 10 minutes and lock after 5 wrong tries, resends have a cooldown, and every password change sends a notice.
+- **One-click live demo.** "Try a live demo workspace" creates a private copy of the sample company (two warehouses, 12 products, three weeks of history) in under a second. Each visitor gets their own, so nobody steps on anyone else; sandboxes delete themselves after 24 hours.
 
 ### Mapped to the brief
 
-- **Authentication**: sign up, sign in, OTP password reset, redirect to the dashboard. Signup rules from the mockup: Login ID unique and 6 to 12 characters, email unique, password with lowercase, uppercase, a special character and more than 8 characters. A failed sign-in always says *"Invalid Login Id or Password"*.
+- **Authentication**: sign up (creates your company), email verification, sign in, password reset by OTP or link, redirect to the dashboard. Signup rules from the mockup: Login ID unique and 6 to 12 characters, email unique, password with lowercase, uppercase, a special character and more than 8 characters. A failed sign-in always says *"Invalid Login Id or Password"*.
 - **Dashboard KPIs**: products in stock, low / out of stock, pending receipts, pending deliveries, internal transfers scheduled. Receipt and delivery cards show *N to receive / to deliver*, **Late** (scheduled before today), **Waiting** (short of stock) and **Upcoming** (scheduled after today), exactly as the mockup defines them.
 - **Dynamic filters**: document type, status, warehouse or location, product category. One row, scoping every number on the page.
 - **Products**: name, SKU, category, unit of measure, unit cost, optional initial stock (booked as an adjustment so it shows in the ledger), reordering rules (min / max) with low-stock alerts and one-click replenishment.
@@ -53,7 +59,7 @@ Open <http://localhost:4000>. The first start migrates the database and loads de
 Requirements: Node.js 20.11+ and PostgreSQL 14+.
 
 ```bash
-git clone https://github.com/divyansh2047/oodo.git stocksense
+git clone https://github.com/Divyansh2047/StockSense.git stocksense
 cd stocksense
 npm ci
 
@@ -69,14 +75,39 @@ npm run dev                         # API on :4000, app on :5173
 
 Open <http://localhost:5173> for the landing page and <http://localhost:5173/app> for the app. Vite proxies `/api` to the API.
 
-### Demo accounts
+### Demo
+
+The fastest way in: **Try a live demo workspace** on the sign-in page. Or use the seeded sample company:
 
 | Login ID | Password | Role |
 |---|---|---|
 | `manager` | `Stock@2026!` | Inventory manager |
 | `picker01` | `Stock@2026!` | Warehouse staff |
 
-The demo data is set up to show the interesting cases: a late receipt, a delivery **waiting** for 55 chairs with 40 on hand (validate today's chair receipt and watch it turn ready), a low-stock and an out-of-stock product. In development the reset screen shows the OTP on screen; production only emails it.
+The demo data is set up to show the interesting cases: a late receipt, a delivery **waiting** for 55 chairs with 40 on hand (validate today's chair receipt and watch it turn ready), a low-stock and an out-of-stock product. In development the verification and reset screens show the code on screen; production only emails it.
+
+---
+
+## Deploy
+
+### Render (free, recommended)
+
+1. Render dashboard, **New, Blueprint**, pick this repository. `render.yaml` creates the Docker web service and a PostgreSQL 16 database and generates `JWT_SECRET`.
+2. Fill in `APP_URL` (for example `https://stocksense.scriptjacker.in`), `MAIL_FROM` and one of `RESEND_API_KEY` / `BREVO_API_KEY`. Render's free plan blocks SMTP ports, which is why the HTTPS email APIs exist.
+3. Optional custom domain: add it under the service's **Settings, Custom Domains**, then point a `CNAME` at the `onrender.com` host Render shows.
+
+Free services sleep after 15 idle minutes; a cron job hitting `/api/health` every 10 minutes keeps the demo instant.
+
+### Any server with Docker (VPS, EC2, Azure VM)
+
+```bash
+git clone https://github.com/Divyansh2047/StockSense.git && cd StockSense
+export JWT_SECRET=$(openssl rand -base64 48) APP_URL=https://your.domain
+# plus MAIL_FROM and SMTP_* (for example smtp.hostinger.com:465) or RESEND_API_KEY
+docker compose up -d --build
+```
+
+Put it behind a TLS proxy (Caddy, nginx) and drop `COOKIE_SECURE: "false"` from `docker-compose.yml` once it serves https.
 
 ---
 
@@ -154,14 +185,14 @@ All endpoints are JSON under `/api` and need a session except `auth/*` and `heal
 
 | Area | Endpoints |
 |---|---|
-| Auth | `POST auth/signup`, `POST auth/login`, `POST auth/logout`, `GET auth/session`, `GET/PATCH auth/me`, `POST auth/change-password`, `POST auth/forgot-password`, `POST auth/verify-otp`, `POST auth/reset-password` |
+| Auth | `POST auth/signup` (creates a company), `POST auth/verify-email`, `POST auth/verify-email/link`, `POST auth/resend-verification`, `POST auth/login`, `POST auth/logout`, `POST auth/demo`, `GET auth/session`, `GET/PATCH auth/me`, `POST auth/change-password`, `POST auth/forgot-password`, `POST auth/verify-otp`, `POST auth/reset-link`, `POST auth/reset-password` |
 | Dashboard | `GET dashboard?warehouseId&locationId&categoryId&type&status` |
 | Operations | `GET/POST operations`, `GET/PATCH/DELETE operations/:id`, `POST operations/:id/confirm` (To Do), `/check-availability`, `/validate`, `/cancel` |
 | Stock | `GET stock?search&warehouseId&locationId&categoryId&stock`, `PUT stock` (set counted quantity, posted as an adjustment) |
 | Moves | `GET moves?search&kind&status&direction&productId&locationId&from&to` |
 | Catalog | `GET/POST products`, `GET/PATCH/DELETE products/:id`, `POST products/:id/replenish`, `GET/POST/PATCH/DELETE categories` |
 | Warehouses | `GET/POST/PATCH/DELETE warehouses`, `GET/POST/PATCH/DELETE locations` |
-| Contacts, team | `GET/POST/PATCH/DELETE partners`, `GET users`, `PATCH users/:id/role` |
+| Contacts, team | `GET/POST/PATCH/DELETE partners`, `GET/POST users` (invite), `POST users/:id/invite` (resend), `PATCH users/:id/role` |
 | Realtime | `GET events` (server-sent events) |
 | Health | `GET health` |
 
@@ -169,6 +200,8 @@ All endpoints are JSON under `/api` and need a session except `auth/*` and `heal
 
 ## Security
 
+- Tenant isolation in the database itself: row-level security policies on every table keyed to the request's company, composite foreign keys across companies, and a startup self-test that refuses to serve if isolation is not in effect.
+- Email ownership is verified before the first sign-in (code or single-use link, HMAC-stored, expiring, attempt-limited).
 - Passwords hashed with bcrypt; sign-in never reveals whether a Login ID exists (constant-time comparison against a dummy hash).
 - Session JWT in an `httpOnly`, `SameSite=Lax` cookie (`Secure` in production). A per-user token version signs out every session on password change or reset.
 - OTP reset: 6-digit codes stored as HMACs, single use, 10-minute expiry, locked after 5 wrong tries, same response for unknown emails, short-lived reset token between steps.
@@ -176,20 +209,20 @@ All endpoints are JSON under `/api` and need a session except `auth/*` and `heal
 - Rate limits on sign-in, sign-up and reset endpoints.
 - Helmet headers with a strict CSP; the landing page's inline scripts are allowed by SHA-256 hash, not `unsafe-inline`.
 - Zod validation on every input, parameterised SQL everywhere, database constraints as the last line (quantities never negative, reservations never exceed stock).
-- Roles: managers change settings, the catalog and the team; staff run receipts, deliveries, transfers and counts. The first account in a new install becomes a manager.
+- Roles: managers change settings, the catalog and the team; staff run receipts, deliveries, transfers and counts. Whoever creates a company is its first manager.
 
 ---
 
 ## Testing
 
 ```bash
-npm test                 # 31 integration tests (needs the stocksense_test database)
+npm test                 # 41 integration tests (needs the stocksense_test database)
 npm run typecheck        # backend and frontend
 npm run build && npm start
-npx playwright install chromium && npm run e2e   # 16 end-to-end checks on seeded data
+npx playwright install chromium && npm run e2e   # 20 end-to-end checks on seeded data
 ```
 
-The integration suite runs the brief's worked example end to end (receive 100 kg, transfer 40, deliver 20, write off 3, ledger shows exactly those four moves), plus the waiting / ready logic, reservation hand-over on cancel, counts below reservations, reference numbering per warehouse, every signup rule and the OTP flow.
+The integration suite runs the brief's worked example end to end (receive 100 kg, transfer 40, deliver 20, write off 3, ledger shows exactly those four moves), plus the waiting / ready logic, reservation hand-over on cancel, counts below reservations, reference numbering per warehouse, every signup rule, email verification by code and link, invitations, demo sandboxes, the OTP flow, and cross-company isolation (another company's ids are invisible and cannot be referenced).
 
 ---
 
@@ -202,11 +235,14 @@ The integration suite runs the brief's worked example end to end (receive 100 kg
 | `PORT` | `4000` | API and static server port |
 | `NODE_ENV` | `development` | `production` enables secure cookies and hides dev helpers |
 | `COOKIE_SECURE` | `true` in production | set `false` only when serving plain http (local docker) |
-| `SEED_DEMO` | `false` | load demo data on boot when the database has no users |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | empty | email delivery for reset codes (without SMTP the code is logged) |
+| `SEED_DEMO` | `false` | load the sample company on boot when the database has no users |
+| `APP_URL` | `http://localhost:5173` | public address used in email links |
+| `MAIL_FROM` | `StockSense <no-reply@stocksense.local>` | sender for all email |
+| `RESEND_API_KEY` or `BREVO_API_KEY` | empty | send email over HTTPS (works where SMTP ports are blocked) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | empty | or send over SMTP (465 uses TLS). With no provider, codes and links are logged |
 | `OTP_DEV_ECHO` | `false` | development only: return the code in the API response |
 | `CORS_ORIGINS` | empty | extra origins allowed to call the API with cookies |
-| `TRUST_PROXY` | `loopback` | Express trust proxy setting when behind a load balancer |
+| `TRUST_PROXY` | `loopback` | Express trust proxy setting: `true`, a hop count, or addresses |
 
 ## Scripts
 

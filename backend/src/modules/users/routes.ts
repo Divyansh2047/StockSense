@@ -60,6 +60,7 @@ const inviteLimiter = rateLimit({
   limit: config.isTest ? 10_000 : 30,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
+  validate: { trustProxy: false },
   message: { error: { code: 'rate_limited', message: 'Too many invitations in an hour. Try again later.' } },
 });
 

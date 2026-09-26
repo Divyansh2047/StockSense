@@ -1,0 +1,43 @@
+# Render Blueprint: Dashboard -> New -> Blueprint -> pick this repository -> Apply.
+# Creates the web service (Docker) and a PostgreSQL 16 database, wires them together
+# and generates the JWT secret. You only fill in the values marked `sync: false`.
+services:
+  - type: web
+    name: stocksense
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: stocksense-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      # Render's edge proxies forward the client address in X-Forwarded-For.
+      - key: TRUST_PROXY
+        value: "true"
+      # Loads the sample company (manager / picker01) on the first start only.
+      - key: SEED_DEMO
+        value: "true"
+      # Public address, used in email links, e.g. https://stocksense.scriptjacker.in
+      - key: APP_URL
+        sync: false
+      # Sender, e.g. StockSense <no-reply@auth.scriptjacker.in> (a domain verified with the provider)
+      - key: MAIL_FROM
+        sync: false
+      # Free Render services cannot use SMTP ports, so send over HTTPS: set ONE of these.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+
+databases:
+  - name: stocksense-db
+    plan: free
+    region: singapore
+    postgresMajorVersion: "16"

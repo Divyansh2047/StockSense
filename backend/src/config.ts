@@ -70,7 +70,8 @@ export const config = {
   databaseSsl: env.DATABASE_SSL,
   jwtSecret,
   corsOrigins: env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
-  trustProxy: env.TRUST_PROXY,
+  // "true", a hop count like "1", or a list of addresses/subnets ("loopback, 10.0.0.0/8")
+  trustProxy: env.TRUST_PROXY === 'true' ? true : /^\d+$/.test(env.TRUST_PROXY) ? Number(env.TRUST_PROXY) : env.TRUST_PROXY,
   logLevel: env.LOG_LEVEL ?? (env.NODE_ENV === 'test' ? 'silent' : isProd ? 'info' : 'debug'),
   smtp: {
     host: env.SMTP_HOST,

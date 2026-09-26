@@ -32,12 +32,17 @@ services:
       COOKIE_SECURE: "false"
       # Loads two warehouses and three weeks of history on the first start.
       SEED_DEMO: "true"
-      # Optional: real email for password reset codes.
+      # Public address used in email links.
+      APP_URL: ${APP_URL:-http://localhost:4000}
+      # Email for verification codes, reset links and invitations. Without a provider
+      # the codes are printed in the app log (`docker compose logs app`).
+      MAIL_FROM: ${MAIL_FROM:-StockSense <no-reply@stocksense.local>}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
       SMTP_HOST: ${SMTP_HOST:-}
-      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_PORT: ${SMTP_PORT:-465}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
-      SMTP_FROM: ${SMTP_FROM:-StockSense <no-reply@stocksense.local>}
 
 volumes:
   pgdata:

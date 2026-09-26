@@ -73,6 +73,8 @@ const limiter = (limit: number, message: string, windowMinutes = 15) =>
     limit: config.isTest ? 10_000 : limit,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
+    // platforms like Render sit behind several proxies; TRUST_PROXY decides which hop is the client
+    validate: { trustProxy: false },
     message: { error: { code: 'rate_limited', message } },
   });
 const authLimiter = limiter(30, 'Too many attempts. Please wait a few minutes and try again.');
