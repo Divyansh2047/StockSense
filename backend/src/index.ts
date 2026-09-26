@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { createApp } from './app.js';
-import { config } from './config.js';
+import { config, setJwtSecret } from './config.js';
+import { loadStoredSecret } from './db/secrets.js';
 import { migrate } from './db/migrate.js';
 import { seed } from './db/seed.js';
 import { adminPool, assertTenantIsolation, pool } from './db/pool.js';
@@ -11,6 +12,10 @@ async function main() {
   // Schema changes are forward-only SQL files; applying them at boot keeps deploys one step.
   const applied = await migrate(adminPool, (m) => logger.info(m));
   if (applied.length) logger.info({ applied }, 'database migrated');
+  if (config.jwtSecretFromDb) {
+    setJwtSecret(await loadStoredSecret(adminPool, 'session-signing-key'));
+    logger.info('using the session signing key stored in the database');
+  }
   // Demo data for a first run (skipped automatically once any user exists).
   if (config.seedDemo) logger.info(await seed());
   await assertTenantIsolation();

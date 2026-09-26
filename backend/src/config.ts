@@ -49,12 +49,15 @@ const env = parsed.data;
 const isProd = env.NODE_ENV === 'production';
 
 let jwtSecret = env.JWT_SECRET ?? '';
-if (jwtSecret.length < 32) {
-  if (isProd) {
-    console.error('JWT_SECRET must be set to at least 32 characters in production.');
-    process.exit(1);
-  }
-  // Development convenience: an ephemeral secret. Sessions reset when the server restarts.
+if (jwtSecret && jwtSecret.length < 32) {
+  console.error('JWT_SECRET must be at least 32 characters.');
+  process.exit(1);
+}
+// Without JWT_SECRET, production generates one on first boot and keeps it in the
+// database (see loadStoredSecret in src/db/secrets.ts), so nobody has to handle it.
+const jwtSecretFromDb = !jwtSecret && isProd;
+if (!jwtSecret) {
+  // Placeholder until the stored secret loads; development keeps this ephemeral one.
   jwtSecret = randomBytes(48).toString('base64url');
   if (env.NODE_ENV === 'development') {
     console.warn('JWT_SECRET is not set; using a temporary secret for this process.');
@@ -69,6 +72,7 @@ export const config = {
   databaseUrl: env.DATABASE_URL,
   databaseSsl: env.DATABASE_SSL,
   jwtSecret,
+  jwtSecretFromDb,
   corsOrigins: env.CORS_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean),
   // "true", a hop count like "1", or a list of addresses/subnets ("loopback, 10.0.0.0/8")
   trustProxy: env.TRUST_PROXY === 'true' ? true : /^\d+$/.test(env.TRUST_PROXY) ? Number(env.TRUST_PROXY) : env.TRUST_PROXY,
@@ -91,4 +95,9 @@ export const config = {
   seedDemo: env.SEED_DEMO,
   // Never echo OTPs in production, whatever the flag says.
   otpDevEcho: env.OTP_DEV_ECHO && !isProd,
-} as const;
+};
+
+/** Called once at boot when the secret comes from the database. */
+export function setJwtSecret(secret: string): void {
+  config.jwtSecret = secret;
+}

@@ -231,7 +231,7 @@ The integration suite runs the brief's worked example end to end (receive 100 kg
 | Variable | Default | Purpose |
 |---|---|---|
 | `DATABASE_URL` | local `stocksense` database | PostgreSQL connection string |
-| `JWT_SECRET` | none (required in production) | 32+ random characters used to sign sessions and OTP hashes |
+| `JWT_SECRET` | generated | 32+ random characters used to sign sessions and hash codes. If unset in production, the server generates one on first boot and keeps it in the database |
 | `PORT` | `4000` | API and static server port |
 | `NODE_ENV` | `development` | `production` enables secure cookies and hides dev helpers |
 | `COOKIE_SECURE` | `true` in production | set `false` only when serving plain http (local docker) |
