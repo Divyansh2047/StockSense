@@ -3,7 +3,7 @@ import { config } from '../config.js';
 import { logger } from './logger.js';
 
 /**
- * Outgoing email. Providers, first configured wins:
+ * Outgoing email. Every configured provider is tried in this order until one accepts:
  *   RESEND_API_KEY  - Resend over HTTPS
  *   BREVO_API_KEY   - Brevo over HTTPS
  *   SMTP_HOST       - any SMTP server (Hostinger, Gmail app password, ...)
@@ -51,8 +51,7 @@ async function postJson(url: string, headers: Record<string, string>, body: unkn
   }
 }
 
-async function deliver(mail: Mail): Promise<void> {
-  const provider = mailProvider();
+async function deliverVia(provider: Exclude<MailProvider, 'log'>, mail: Mail): Promise<void> {
   const from = parseFrom(config.mail.from);
   switch (provider) {
     case 'resend':
@@ -70,11 +69,35 @@ async function deliver(mail: Mail): Promise<void> {
     case 'smtp':
       await smtp!.sendMail({ from: config.mail.from, to: mail.to, subject: mail.subject, text: mail.text, html: mail.html });
       return;
-    case 'log':
-      // Local development: keep flows usable without an inbox.
-      if (!config.isTest) logger.warn({ to: mail.to, subject: mail.subject }, `Email not sent (no provider configured):\n${mail.text}`);
-      return;
   }
+}
+
+/** Every configured provider, in order of preference. */
+const providers = (): Exclude<MailProvider, 'log'>[] => [
+  ...(config.mail.resendKey ? (['resend'] as const) : []),
+  ...(config.mail.brevoKey ? (['brevo'] as const) : []),
+  ...(smtp ? (['smtp'] as const) : []),
+];
+
+/** Try each provider in turn, so one outage (or an unverified domain) falls through to the next. */
+async function deliver(mail: Mail): Promise<void> {
+  const list = providers();
+  if (!list.length) {
+    // Local development: keep flows usable without an inbox.
+    if (!config.isTest) logger.warn({ to: mail.to, subject: mail.subject }, `Email not sent (no provider configured):\n${mail.text}`);
+    return;
+  }
+  let lastError: unknown;
+  for (const provider of list) {
+    try {
+      await deliverVia(provider, mail);
+      return;
+    } catch (err) {
+      lastError = err;
+      logger.warn({ err, provider, subject: mail.subject }, `email provider ${provider} failed, trying the next one`);
+    }
+  }
+  throw lastError;
 }
 
 /** Send without letting a provider outage turn into a 500 for the user. */
